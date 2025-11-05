@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Navbar, Nav } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './decoraciones.css';
+import './Decoraciones.css';
 
 const DecoracionServicios = () => {
   const [selectedDecoration, setSelectedDecoration] = useState(null);
@@ -166,7 +166,7 @@ const DecoracionServicios = () => {
             <h2 className="section-title1">Estilos de Decoración</h2>
             <p className="section-subtitle">Selecciona el estilo que mejor se adapte a tu evento</p>
           </div>
-          
+
           <div className="decoration-options">
             {decorationOptions.map(decoration => (
               <div key={decoration.id} className="decoration-card">
@@ -185,14 +185,14 @@ const DecoracionServicios = () => {
                     ))}
                   </ul>
                   <p className="ideal-for">
-                    <i className="fas fa-heart"></i> 
+                    <i className="fas fa-heart"></i>
                     <strong>Ideal para:</strong> {decoration.idealFor}
                   </p>
-                  <button 
+                  <button
                     className={`btn-select ${selectedDecoration?.id === decoration.id ? 'selected' : ''}`}
                     onClick={() => handleSelectDecoration(decoration)}
                   >
-                    {selectedDecoration?.id === decoration.id ? 'Seleccionado' : 'Seleccionar'} 
+                    {selectedDecoration?.id === decoration.id ? 'Seleccionado' : 'Seleccionar'}
                     <i className="fas fa-check-circle"></i>
                   </button>
                 </div>
@@ -207,7 +207,7 @@ const DecoracionServicios = () => {
             <h2 className="section-title">Servicios Adicionales</h2>
             <p className="section-subtitle">Complementa tu evento con estos servicios especiales</p>
           </div>
-          
+
           <div className="services-options">
             {serviceOptions.map(service => (
               <div key={service.id} className="service-card1">
@@ -227,11 +227,11 @@ const DecoracionServicios = () => {
                   {/* El precio existe en el objeto (service.price) para cálculo/resumen,
                       pero no se muestra en la tarjeta según lo solicitado. */}
                   <div className="service-actions">
-                    <button 
+                    <button
                       className={`btn-add ${selectedServices.find(s => s.id === service.id) ? 'selected' : ''}`}
                       onClick={() => handleToggleService(service)}
                     >
-                      {selectedServices.find(s => s.id === service.id) ? 'Quitar' : 'Añadir'} 
+                      {selectedServices.find(s => s.id === service.id) ? 'Quitar' : 'Añadir'}
                       <i className={`fas ${selectedServices.find(s => s.id === service.id) ? 'fa-minus' : 'fa-plus'}`}></i>
                     </button>
                   </div>
@@ -252,7 +252,7 @@ const DecoracionServicios = () => {
               ) : (
                 <p>No has seleccionado decoración aún</p>
               )}
-              
+
               {selectedServices.length > 0 ? (
                 selectedServices.map(service => (
                   <div key={service.id} className="selected-item">
@@ -296,12 +296,12 @@ const DecoracionServicios = () => {
               <p className="mt-3">
                 <i className="fas fa-map-marker-alt me-2"></i>Cl. 25 #127-220, Barrio Pance, Cali, Valle del Cauca
               </p>
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco" 
-                width="100%" 
-                height="150" 
-                style={{border: 0}} 
-                allowFullScreen="" 
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco"
+                width="100%"
+                height="150"
+                style={{ border: 0 }}
+                allowFullScreen=""
                 loading="lazy"
                 title="Ubicación Elite Eventos"
               ></iframe>

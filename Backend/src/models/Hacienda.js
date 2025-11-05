@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
+const sequelize = require('../config/database'); // ← CAMBIAR: quitar las llaves {}
 
 const Hacienda = sequelize.define('Salon', {
     id_salon: {
@@ -20,12 +20,12 @@ const Hacienda = sequelize.define('Salon', {
         allowNull: false
     },
     descripcion: {
-        type: DataTypes.STRING(300),
+        type: DataTypes.TEXT,
         allowNull: true
     },
     precio_base: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: true
+        allowNull: false
     },
     imagen_url: {
         type: DataTypes.STRING(255),

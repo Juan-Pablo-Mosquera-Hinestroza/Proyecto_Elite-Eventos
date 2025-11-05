@@ -8,7 +8,7 @@ const sequelize = new Sequelize(
     {
         host: process.env.DB_HOST || 'localhost',
         dialect: 'mysql',
-        logging: false, // Cambia a console.log si quieres ver las queries SQL
+        logging: false,
         pool: {
             max: 5,
             min: 0,
@@ -18,15 +18,16 @@ const sequelize = new Sequelize(
     }
 );
 
-// Función para probar la conexión
 const testConnection = async () => {
     try {
         await sequelize.authenticate();
         console.log('✅ Conexión a MySQL establecida correctamente');
     } catch (error) {
         console.error('❌ Error conectando a la base de datos:', error.message);
-        console.error('📋 Detalles del error:', error); // ← Añadir esta línea
+        console.error('📋 Detalles del error:', error);
+        throw error; // ← Importante: lanzar el error para que server.js lo capture
     }
 };
 
-module.exports = { sequelize, testConnection };
+module.exports = sequelize;
+module.exports.testConnection = testConnection;

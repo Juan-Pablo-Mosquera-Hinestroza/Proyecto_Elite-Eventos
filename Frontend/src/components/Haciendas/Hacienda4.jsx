@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Hacienda4.css';
 
 const Hacienda4 = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
-  
+
   const hacienda = {
     id: 4,
     nombre: "Hacienda La Montaña",
@@ -38,6 +38,31 @@ const Hacienda4 = () => {
       "./Fotos/Imagenes/4.5.jpg"
     ]
   };
+
+  // ================================
+  // CAMBIO 3: Agregar useEffect para actualizar desde la API
+  // ================================
+  useEffect(() => {
+    fetch('http://localhost:3000/api/haciendas/4')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Actualiza SOLO los campos que vienen de la BD
+          setHacienda(prev => ({
+            ...prev, // Mantiene todo lo demás (servicios, imágenes, características)
+            nombre: data.data.nombre,
+            precio: `$${Number(data.data.precio_base).toLocaleString('es-CO')}`,
+            capacidad: `${data.data.capacidad} personas`,
+            ubicacion: data.data.direccion,
+            descripcion: data.data.descripcion
+          }));
+        }
+      })
+      .catch(err => {
+        console.error('Error al cargar hacienda desde API:', err);
+        // Si falla, mantiene los datos por defecto (los del useState inicial)
+      });
+  }, []);
 
   const haciendasSimilares = [
     {
@@ -104,8 +129,8 @@ const Hacienda4 = () => {
       </nav>
 
       {/* Hero Section */}
-      <header 
-        className="hacienda-hero" 
+      <header
+        className="hacienda-hero"
         style={{
           backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${hacienda.imagenes[5]})`
         }}
@@ -143,9 +168,9 @@ const Hacienda4 = () => {
             {/* Galería de imágenes */}
             <div className="hacienda-gallery mb-5">
               <div className="main-image">
-                <img 
-                  src={hacienda.imagenes[activeThumbnail]} 
-                  alt={hacienda.nombre} 
+                <img
+                  src={hacienda.imagenes[activeThumbnail]}
+                  alt={hacienda.nombre}
                   className="img-fluid rounded-3"
                   onError={(e) => {
                     e.target.src = 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80';
@@ -154,13 +179,13 @@ const Hacienda4 = () => {
               </div>
               <div className="thumbnail-container">
                 {hacienda.imagenes.slice(0, 4).map((imagen, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`thumbnail ${index === activeThumbnail ? 'active' : ''}`}
                     onClick={() => handleThumbnailClick(index)}
                   >
-                    <img 
-                      src={imagen} 
+                    <img
+                      src={imagen}
                       alt={`Vista ${index + 1}`}
                       onError={(e) => {
                         e.target.src = 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80';
@@ -178,16 +203,16 @@ const Hacienda4 = () => {
                 Ubicada en la cima de una colina con vistas impresionantes a los valles y montañas,{" "}
                 <strong>{hacienda.nombre}</strong> es el destino perfecto para eventos exclusivos.
               </p>
-              
+
               <p>
-                Su arquitectura tradicional de casas con techos de teja y paredes blancas evoca 
-                el encanto de las antiguas haciendas coloniales, ofreciendo un ambiente acogedor 
-                y auténtico. La combinación de elementos rústicos con comodidades modernas crea 
+                Su arquitectura tradicional de casas con techos de teja y paredes blancas evoca
+                el encanto de las antiguas haciendas coloniales, ofreciendo un ambiente acogedor
+                y auténtico. La combinación de elementos rústicos con comodidades modernas crea
                 un espacio único para bodas, retiros corporativos y eventos especiales.
               </p>
-              
+
               <p>
-                La propiedad abarca 12 hectáreas de terreno montañoso, incluyendo bosques nativos, 
+                La propiedad abarca 12 hectáreas de terreno montañoso, incluyendo bosques nativos,
                 senderos ecológicos y miradores naturales que ofrecen vistas panorámicas espectaculares.
               </p>
             </section>
@@ -290,8 +315,8 @@ const Hacienda4 = () => {
             {haciendasSimilares.map((haciendaSimilar) => (
               <div key={haciendaSimilar.id} className="col-md-4">
                 <div className="hacienda-card">
-                  <img 
-                    src={haciendaSimilar.imagen} 
+                  <img
+                    src={haciendaSimilar.imagen}
                     alt={haciendaSimilar.nombre}
                     onError={(e) => {
                       e.target.src = 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80';
@@ -308,16 +333,16 @@ const Hacienda4 = () => {
                         <i className="fas fa-map-marker-alt"></i> {haciendaSimilar.ubicacion}
                       </span>
                     </div>
-                    <button 
+                    <button
                       className="btn btn-outline-primary"
-                      onClick={() => 
-                        haciendaSimilar.id === 1 
-                          ? window.location.href = "/hacienda1" 
-                          : haciendaSimilar.id === 2 
-                          ? window.location.href = "/hacienda2" 
-                          : haciendaSimilar.id === 3 
-                          ? window.location.href = "/hacienda3" 
-                          : handleVerDetallesSimilar(haciendaSimilar)
+                      onClick={() =>
+                        haciendaSimilar.id === 1
+                          ? window.location.href = "/hacienda1"
+                          : haciendaSimilar.id === 2
+                            ? window.location.href = "/hacienda2"
+                            : haciendaSimilar.id === 3
+                              ? window.location.href = "/hacienda3"
+                              : handleVerDetallesSimilar(haciendaSimilar)
                       }
                     >
                       Ver detalles
@@ -351,12 +376,12 @@ const Hacienda4 = () => {
               <p className="mt-3">
                 <i className="fas fa-map-marker-alt me-2"></i>Cl. 25 #127-220, Barrio Pance, Cali, Valle del Cauca
               </p>
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco" 
-                width="100%" 
-                height="150" 
-                style={{border: 0}} 
-                allowFullScreen="" 
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco"
+                width="100%"
+                height="150"
+                style={{ border: 0 }}
+                allowFullScreen=""
                 loading="lazy"
                 title="Ubicación Elite Eventos"
               ></iframe>
@@ -364,7 +389,7 @@ const Hacienda4 = () => {
             <div className="col-lg-4 mb-4">
               <h6>Contacto</h6>
               <p className="mt-3">
-                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br/>
+                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br />
                 <i className="fas fa-phone me-2"></i>(57) 312 691 5311
               </p>
             </div>

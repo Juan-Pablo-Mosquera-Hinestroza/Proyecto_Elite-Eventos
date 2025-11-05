@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // ← DEBE tener useEffect aquí
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './haciendas.css';
+import './Haciendas.css';
 
 const Haciendas = () => {
   const haciendas = [
@@ -41,6 +41,36 @@ const Haciendas = () => {
       enlace: "Haciendas/Hacienda_4.html"
     }
   ];
+
+  // ================================
+  // NUEVO: Obtener datos de la API
+  // ================================
+  useEffect(() => {
+    fetch('http://localhost:3000/api/haciendas')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Mapear los datos de MySQL al formato del componente
+          const haciendasFormateadas = data.data.map((h) => ({
+            id: h.id_salon,
+            nombre: h.nombre,
+            precio: `$${Number(h.precio_base).toLocaleString('es-CO')}`,
+            capacidad: `${h.capacidad} personas`,
+            ubicacion: h.direccion,
+            imagen: h.imagen_url || "./Fotos/Imagenes/Finca_1.jpg", // Usar imagen de BD o fallback
+            enlace: `/Hacienda${h.id_salon}`
+          }));
+
+          setHaciendas(haciendasFormateadas);
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        console.error('Error al cargar haciendas:', err);
+        setLoading(false);
+        // Si falla, mantiene los datos por defecto
+      });
+  }, []);
 
   const handleContacto = () => {
     console.log('Redirigiendo a contacto...');
@@ -85,9 +115,9 @@ const Haciendas = () => {
             <div key={hacienda.id} className="col">
               <div className="card border-0 shadow-sm">
                 <div className="card-img-container">
-                  <img 
-                    src={hacienda.imagen} 
-                    className="card-img-top" 
+                  <img
+                    src={hacienda.imagen}
+                    className="card-img-top"
                     alt={hacienda.nombre}
                     onError={(e) => {
                       e.target.src = 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80';
@@ -107,18 +137,18 @@ const Haciendas = () => {
                       {hacienda.ubicacion}
                     </span>
                   </div>
-                  <button 
+                  <button
                     className="btn btn-outline-primary mt-3 w-100 rounded-pill"
-                    onClick={() => 
-                      hacienda.id === 1 
-                        ? window.location.href = "/hacienda1" 
-                        : hacienda.id === 2 
-                        ? window.location.href = "/hacienda2" 
-                        : hacienda.id === 3 
-                        ? window.location.href = "/hacienda3" 
-                        : hacienda.id === 4 
-                        ? window.location.href = "/hacienda4"
-                        : handleVerDetalles(hacienda)
+                    onClick={() =>
+                      hacienda.id === 1
+                        ? window.location.href = "/hacienda1"
+                        : hacienda.id === 2
+                          ? window.location.href = "/hacienda2"
+                          : hacienda.id === 3
+                            ? window.location.href = "/hacienda3"
+                            : hacienda.id === 4
+                              ? window.location.href = "/hacienda4"
+                              : handleVerDetalles(hacienda)
                     }
                   >
                     Ver detalles
@@ -135,7 +165,7 @@ const Haciendas = () => {
         <div className="container text-center py-4">
           <h2 className="mb-4">¿No encuentras lo que buscas?</h2>
           <p className="mb-4">Tenemos más opciones disponibles. Contáctanos para ayudarte a encontrar la hacienda perfecta.</p>
-          <button 
+          <button
             className="btn btn-primary btn-lg rounded-pill px-4"
             onClick={handleContacto}
           >
@@ -144,7 +174,7 @@ const Haciendas = () => {
         </div>
       </section>
 
-         {/* Footer */}
+      {/* Footer */}
       <footer className="footer2">
         <div className="container py-5">
           <div className="row">
@@ -165,12 +195,12 @@ const Haciendas = () => {
               <p className="mt-3">
                 <i className="fas fa-map-marker-alt me-2"></i>Cl. 25 #127-220, Barrio Pance, Cali, Valle del Cauca
               </p>
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco" 
-                width="100%" 
-                height="150" 
-                style={{border: 0}} 
-                allowFullScreen="" 
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco"
+                width="100%"
+                height="150"
+                style={{ border: 0 }}
+                allowFullScreen=""
                 loading="lazy"
                 title="Ubicación Elite Eventos"
               ></iframe>
@@ -178,7 +208,7 @@ const Haciendas = () => {
             <div className="col-lg-4 mb-4">
               <h6>Contacto</h6>
               <p className="mt-3">
-                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br/>
+                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br />
                 <i className="fas fa-phone me-2"></i>(57) 312 691 5311
               </p>
             </div>
