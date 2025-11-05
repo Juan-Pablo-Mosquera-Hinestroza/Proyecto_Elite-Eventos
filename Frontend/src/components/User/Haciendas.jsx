@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react'; // ← DEBE tener useEffect aquí
+import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Haciendas.css';
 
 const Haciendas = () => {
-  const haciendas = [
+  // ================================
+  // ESTADOS: Convertir haciendas en estado reactivo
+  // ================================
+  const [haciendas, setHaciendas] = useState([
     {
       id: 1,
       nombre: "El Paraiso Escondido",
@@ -40,16 +43,24 @@ const Haciendas = () => {
       imagen: "./Fotos/Imagenes/Finca_4.jpg",
       enlace: "Haciendas/Hacienda_4.html"
     }
-  ];
+  ]);
+
+  const [loading, setLoading] = useState(true);
 
   // ================================
-  // NUEVO: Obtener datos de la API
+  // useEffect: Verificar y actualizar datos desde MySQL
   // ================================
   useEffect(() => {
-    fetch('http://localhost:3000/api/haciendas')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
+    let isMounted = true;
+
+    const fetchHaciendas = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/haciendas');
+        const data = await response.json();
+
+        if (data.success && Array.isArray(data.data) && isMounted) {
+          console.log('📦 Haciendas desde MySQL:', data.data.length, 'registros');
+
           // Mapear los datos de MySQL al formato del componente
           const haciendasFormateadas = data.data.map((h) => ({
             id: h.id_salon,
@@ -57,32 +68,88 @@ const Haciendas = () => {
             precio: `$${Number(h.precio_base).toLocaleString('es-CO')}`,
             capacidad: `${h.capacidad} personas`,
             ubicacion: h.direccion,
-            imagen: h.imagen_url || "./Fotos/Imagenes/Finca_1.jpg", // Usar imagen de BD o fallback
+            imagen: h.imagen_url || "./Fotos/Imagenes/Finca_1.jpg",
             enlace: `/Hacienda${h.id_salon}`
           }));
 
-          setHaciendas(haciendasFormateadas);
+          // Comparar datos
+          const hayDiferencias = JSON.stringify(haciendas.map(h => ({ nombre: h.nombre, precio: h.precio }))) !==
+            JSON.stringify(haciendasFormateadas.map(h => ({ nombre: h.nombre, precio: h.precio })));
+
+          if (hayDiferencias) {
+            console.log('📊 Sincronizando haciendas desde MySQL...');
+            setHaciendas(haciendasFormateadas);
+            // Esperar al próximo render para confirmar
+            setTimeout(() => {
+              console.log('✅ Sincronización completada exitosamente');
+              console.table(haciendasFormateadas.map(h => ({
+                ID: h.id,
+                Nombre: h.nombre,
+                Precio: h.precio,
+                Capacidad: h.capacidad,
+                Ubicación: h.ubicacion
+              })));
+            }, 100);
+          } else {
+            console.log('✅ Haciendas ya están sincronizadas (sin cambios)');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar haciendas:', error.message);
+      } finally {
+        if (isMounted) {
           setLoading(false);
         }
-      })
-      .catch(err => {
-        console.error('Error al cargar haciendas:', err);
-        setLoading(false);
-        // Si falla, mantiene los datos por defecto
-      });
+      }
+    };
+
+    fetchHaciendas();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleContacto = () => {
     console.log('Redirigiendo a contacto...');
-    // Aquí podrías redirigir a una página de contacto o abrir un modal
     alert('Función de contacto - En una implementación real redirigiría a Gmail');
   };
 
   const handleVerDetalles = (hacienda) => {
     console.log('Viendo detalles de:', hacienda.nombre);
-    // En una implementación real, esto redirigiría a la página de detalles
     alert(`Viendo detalles de ${hacienda.nombre} - Precio: ${hacienda.precio}`);
   };
+
+  // ================================
+  // Loading State
+  // ================================
+  if (loading) {
+    return (
+      <div className="haciendas-container">
+        <nav className="navbar navbar-expand-lg navbar-light fixed-top px-4">
+          <div className="container-fluid">
+            <a className="navbar-brand fs-3 fw-bold" href="./visitor">
+              <i className="fas fa-crown me-2"></i>Elite Eventos
+            </a>
+          </div>
+        </nav>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          paddingTop: '100px'
+        }}>
+          <div className="text-center">
+            <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="mt-3 fs-5">Cargando haciendas...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="haciendas-container">

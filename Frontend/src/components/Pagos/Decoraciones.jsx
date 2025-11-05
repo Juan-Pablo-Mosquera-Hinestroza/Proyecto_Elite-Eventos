@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Navbar, Nav } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Decoraciones.css';
@@ -7,8 +7,8 @@ const DecoracionServicios = () => {
   const [selectedDecoration, setSelectedDecoration] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
 
-  // Datos de decoración
-  const decorationOptions = [
+  // Estados iniciales (fallback si falla la API)
+  const [decorationOptions, setDecorationOptions] = useState([
     {
       id: 1,
       name: "Temático y Personalizado",
@@ -65,10 +65,9 @@ const DecoracionServicios = () => {
       ],
       idealFor: "Bodas al aire libre, eventos campestres"
     }
-  ];
+  ]);
 
-  // Datos de servicios
-  const serviceOptions = [
+  const [serviceOptions, setServiceOptions] = useState([
     {
       id: 1,
       name: "Fotografía y Video Profesional",
@@ -109,7 +108,129 @@ const DecoracionServicios = () => {
       features: ["Diseño exclusivo", "Variedad de productos", "Empaque premium"],
       price: 500000
     }
-  ];
+  ]);
+
+  // ========================================
+  // useEffect: Verificar y actualizar datos desde MySQL
+  // ========================================
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch decoraciones
+        const resDecoraciones = await fetch('http://localhost:3000/api/decoraciones');
+        const dataDecoraciones = await resDecoraciones.json();
+
+        console.log('📦 Respuesta decoraciones:', dataDecoraciones);
+
+        if (dataDecoraciones.success && dataDecoraciones.data) {
+          const decoracionesDB = dataDecoraciones.data;
+
+          if (Array.isArray(decoracionesDB) && decoracionesDB.length > 0) {
+            const needsUpdateDecos = decoracionesDB.some((dbDeco) => {
+              const existente = decorationOptions.find(d => d.id === dbDeco.id_decoracion);
+              return existente && existente.price !== parseFloat(dbDeco.precio);
+            });
+
+            if (needsUpdateDecos || decoracionesDB.length !== decorationOptions.length) {
+              console.log('📊 Actualizando decoraciones desde MySQL...');
+
+              // Mantener solo las primeras 4 para coincidir con el diseño
+              const decoracionesActualizadas = decorationOptions.map((deco, index) => {
+                const dbDeco = decoracionesDB[index];
+                if (dbDeco) {
+                  return {
+                    ...deco,
+                    id: dbDeco.id_decoracion,
+                    name: dbDeco.nombre || deco.name,
+                    price: parseFloat(dbDeco.precio)
+                  };
+                }
+                return deco;
+              });
+
+              setDecorationOptions(decoracionesActualizadas);
+              console.log('✅ Decoraciones actualizadas:', decoracionesActualizadas.length);
+            } else {
+              console.log('✅ Decoraciones sincronizadas con la BD');
+            }
+          }
+        }
+
+        // Fetch servicios
+        const resServicios = await fetch('http://localhost:3000/api/servicios');
+        const dataServicios = await resServicios.json();
+
+        console.log('📦 Respuesta servicios:', dataServicios);
+
+        if (dataServicios.success && dataServicios.data) {
+          const serviciosDB = dataServicios.data;
+
+          if (Array.isArray(serviciosDB) && serviciosDB.length > 0) {
+            const needsUpdateServicios = serviciosDB.some((dbServ) => {
+              const existente = serviceOptions.find(s => s.id === dbServ.id_servicio);
+              return existente && existente.price !== parseFloat(dbServ.precio);
+            });
+
+            if (needsUpdateServicios || serviciosDB.length !== serviceOptions.length) {
+              console.log('📊 Actualizando servicios desde MySQL...');
+
+              // Helper: Asignar icono según nombre del servicio
+              const getServiceIcon = (nombre) => {
+                const nombreLower = nombre.toLowerCase();
+                if (nombreLower.includes('música') || nombreLower.includes('dj')) return 'fas fa-music';
+                if (nombreLower.includes('catering') || nombreLower.includes('buffet') || nombreLower.includes('mesa')) return 'fas fa-utensils';
+                if (nombreLower.includes('bebida') || nombreLower.includes('bar')) return 'fas fa-glass-cheers';
+                if (nombreLower.includes('foto') || nombreLower.includes('video')) return 'fas fa-camera';
+                if (nombreLower.includes('transporte') || nombreLower.includes('bus')) return 'fas fa-bus';
+                if (nombreLower.includes('recuerdo') || nombreLower.includes('souvenir')) return 'fas fa-gift';
+                return 'fas fa-star';
+              };
+
+              // Helper: Asignar features según el servicio
+              const getServiceFeatures = (nombre) => {
+                const nombreLower = nombre.toLowerCase();
+                if (nombreLower.includes('música') || nombreLower.includes('dj')) {
+                  return ["Equipo de sonido profesional", "Lista personalizada", "Efectos de luces"];
+                }
+                if (nombreLower.includes('buffet')) {
+                  return ["Variedad de platos", "Estaciones de comida", "Servicio incluido"];
+                }
+                if (nombreLower.includes('mesa')) {
+                  return ["Servicio a la mesa", "Menú personalizado", "Atención exclusiva"];
+                }
+                if (nombreLower.includes('bebida') || nombreLower.includes('premium')) {
+                  return ["Barra libre", "Licores premium", "Bartender profesional"];
+                }
+                return ["Servicio completo", "Atención personalizada", "Garantía de calidad"];
+              };
+
+              // Mapear servicios de la BD
+              const serviciosActualizados = serviciosDB.map(dbServ => {
+                return {
+                  id: dbServ.id_servicio,
+                  name: dbServ.nombre,
+                  icon: getServiceIcon(dbServ.nombre),
+                  description: dbServ.descripcion || "Servicio profesional para tu evento",
+                  features: getServiceFeatures(dbServ.nombre),
+                  price: parseFloat(dbServ.precio)
+                };
+              });
+
+              setServiceOptions(serviciosActualizados);
+              console.log('✅ Servicios actualizados:', serviciosActualizados.length);
+            } else {
+              console.log('✅ Servicios sincronizados con la BD');
+            }
+          }
+        }
+
+      } catch (error) {
+        console.error('⚠️ Error al verificar datos con la BD:', error);
+      }
+    };
+
+    fetchData();
+  }, []); // Solo ejecutar al montar el componente
 
   // Manejar selección de decoración
   const handleSelectDecoration = (decoration) => {
@@ -224,8 +345,6 @@ const DecoracionServicios = () => {
                       </span>
                     ))}
                   </div>
-                  {/* El precio existe en el objeto (service.price) para cálculo/resumen,
-                      pero no se muestra en la tarjeta según lo solicitado. */}
                   <div className="service-actions">
                     <button
                       className={`btn-add ${selectedServices.find(s => s.id === service.id) ? 'selected' : ''}`}

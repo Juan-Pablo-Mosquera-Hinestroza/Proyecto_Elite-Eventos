@@ -5,7 +5,10 @@ import './Hacienda1.css';
 const HaciendaDetail = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
 
-  const hacienda = {
+  // ================================
+  // CAMBIO: Convertir hacienda en estado
+  // ================================
+  const [hacienda, setHacienda] = useState({
     id: 1,
     nombre: "El Paraíso Escondido",
     precio: "$20.000.000",
@@ -35,60 +38,103 @@ const HaciendaDetail = () => {
       "./Fotos/Imagenes/1.2.jpg",
       "./Fotos/Imagenes/1.3.jpg"
     ]
-  };
+  });
 
   // ================================
-  // CAMBIO 3: Agregar useEffect para actualizar desde la API
+  // useEffect: Actualizar desde la API
   // ================================
   useEffect(() => {
-    fetch('http://localhost:3000/api/haciendas/1')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Actualiza SOLO los campos que vienen de la BD
-          setHacienda(prev => ({
-            ...prev, // Mantiene todo lo demás (servicios, imágenes, características)
+    let isMounted = true;
+
+    const fetchHacienda = async () => {
+      try {
+        console.log('📡 Solicitando datos de Hacienda ID: 1...');
+
+        const response = await fetch('http://localhost:3000/api/haciendas/1');
+        const data = await response.json();
+
+        if (data.success && isMounted) {
+          console.log('📦 Datos recibidos de MySQL:', {
+            nombre: data.data.nombre,
+            precio: data.data.precio_base,
+            capacidad: data.data.capacidad,
+            ubicacion: data.data.direccion
+          });
+
+          const datosAnteriores = {
+            nombre: hacienda.nombre,
+            precio: hacienda.precio,
+            capacidad: hacienda.capacidad,
+            ubicacion: hacienda.ubicacion
+          };
+
+          // Actualizar datos
+          const haciendaActualizada = {
+            ...hacienda,
             nombre: data.data.nombre,
             precio: `$${Number(data.data.precio_base).toLocaleString('es-CO')}`,
             capacidad: `${data.data.capacidad} personas`,
             ubicacion: data.data.direccion,
-            descripcion: data.data.descripcion
-          }));
+            descripcion: data.data.descripcion || hacienda.descripcion
+          };
+
+          setHacienda(haciendaActualizada);
+
+          // Log de confirmación con comparación
+          setTimeout(() => {
+            console.log('✅ Hacienda 1 sincronizada exitosamente');
+            console.log('📊 Comparación de datos:');
+            console.table({
+              'Antes (hardcoded)': datosAnteriores,
+              'Después (MySQL)': {
+                nombre: haciendaActualizada.nombre,
+                precio: haciendaActualizada.precio,
+                capacidad: haciendaActualizada.capacidad,
+                ubicacion: haciendaActualizada.ubicacion
+              }
+            });
+          }, 100);
         }
-      })
-      .catch(err => {
-        console.error('Error al cargar hacienda desde API:', err);
-        // Si falla, mantiene los datos por defecto (los del useState inicial)
-      });
+      } catch (error) {
+        console.error('❌ Error al cargar hacienda desde API:', error.message);
+        console.log('⚠️ Usando datos por defecto (hardcoded)');
+      }
+    };
+
+    fetchHacienda();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const haciendasSimilares = [
     {
       id: 2,
-      nombre: "Los Jardines del Sol",
+      nombre: "Hacienda La Cascada",
       precio: "$25.000.000",
       capacidad: "200 personas",
       ubicacion: "Jamundí",
       imagen: "./Fotos/Imagenes/2.jpeg",
-      enlace: "Hacienda_2.html"
+      enlace: "/Hacienda2"
     },
     {
       id: 3,
-      nombre: "El Encanto Natural",
+      nombre: "Hacienda Vista Hermosa",
       precio: "$15.000.000",
       capacidad: "100 personas",
       ubicacion: "Yumbo",
       imagen: "./Fotos/Imagenes/3.jpeg",
-      enlace: "Hacienda_3.html"
+      enlace: "/Hacienda3"
     },
     {
       id: 4,
-      nombre: "Hacienda La Montaña",
+      nombre: "Hacienda San José",
       precio: "$35.000.000",
       capacidad: "450 personas",
       ubicacion: "Pance",
       imagen: "./Fotos/Imagenes/Finca_4.jpg",
-      enlace: "Hacienda_4.html"
+      enlace: "/Hacienda4"
     }
   ];
 
@@ -192,22 +238,7 @@ const HaciendaDetail = () => {
             {/* Descripción detallada */}
             <section className="hacienda-description mb-5">
               <h2 className="section-title">Descripción</h2>
-              <p>
-                Ubicada en un entorno natural rodeado de exuberante vegetación, la hacienda{" "}
-                <strong>{hacienda.nombre}</strong> es el lugar perfecto para tu evento.
-              </p>
-
-              <p>
-                Su arquitectura rústica con muros de piedra y techos de teja le da un encanto colonial,
-                mientras que sus amplias terrazas permiten disfrutar de vistas panorámicas al jardín.
-                La combinación de elementos tradicionales con comodidades modernas crea un ambiente
-                único que deleitará a tus invitados.
-              </p>
-
-              <p>
-                La propiedad cuenta con 15 hectáreas de terreno, incluyendo jardines meticulosamente
-                diseñados, un lago privado y áreas boscosas que ofrecen intimidad y conexión con la naturaleza.
-              </p>
+              <p>{hacienda.descripcion}</p>
             </section>
 
             {/* Características */}
