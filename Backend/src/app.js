@@ -11,13 +11,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ================================
+// Importar rutas
+// ================================
+const haciendaRoutes = require('./routes/haciendaRoutes');
+
+// ================================
+// Usar rutas
+// ================================
+app.use('/api/haciendas', haciendaRoutes);
+
+// ================================
 // Ruta de prueba
 // ================================
 app.get('/', (req, res) => {
     res.json({
         message: '✅ API de Elite Eventos funcionando correctamente',
         version: '1.0.0',
-        database: 'MySQL - Elite_Eventos'
+        database: 'MySQL - Elite_Eventos',
+        endpoints: {
+            haciendas: '/api/haciendas',
+            hacienda: '/api/haciendas/:id'
+        }
     });
 });
 
