@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 
 // ================================
-// Middlewares
+// Middlewares Globales
 // ================================
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5177', 'http://127.0.0.1:5173'],
@@ -14,35 +15,36 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+    next();
+});
+
 // ================================
-// Importar rutas
+// Importar Rutas
 // ================================
 const haciendaRoutes = require('./routes/haciendaRoutes');
 const decoracionRoutes = require('./routes/decoracionRoutes');
-const servicioRoutes = require('./routes/servicioRoutes'); // ← NUEVO
+const servicioRoutes = require('./routes/servicioRoutes');
+const eventoRoutes = require('./routes/eventoRoutes');
 
 // ================================
-// Usar rutas
-// ================================
-app.use('/api/haciendas', haciendaRoutes);
-app.use('/api/decoraciones', decoracionRoutes);
-app.use('/api/servicios', servicioRoutes); // ← NUEVO
-
-// ================================
-// Ruta de prueba
+// Ruta Principal (Health Check)
 // ================================
 app.get('/', (req, res) => {
     res.json({
+        success: true,
         message: '✅ API de Elite Eventos funcionando correctamente',
-        version: '1.0.0',
+        version: '2.0.0',
         database: 'MySQL - Elite_Eventos',
+        timestamp: new Date().toISOString(),
         endpoints: {
             haciendas: '/api/haciendas',
-            hacienda_por_id: '/api/haciendas/:id',
             decoraciones: '/api/decoraciones',
-            decoracion_por_id: '/api/decoraciones/:id',
-            servicios: '/api/servicios', // ← NUEVO
-            servicio_por_id: '/api/servicios/:id' // ← NUEVO
+            servicios: '/api/servicios',
+            eventos: '/api/eventos',
+            eventos_usuario: '/api/eventos/usuario/:id_usuario',
+            disponibilidad: '/api/eventos/disponibilidad'
         }
     });
 });
@@ -50,19 +52,24 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
-        timestamp: new Date(),
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        memory: process.memoryUsage()
     });
 });
 
 // ================================
-// Manejo de errores 404
+// Usar Rutas de API
 // ================================
-app.use((req, res) => {
-    res.status(404).json({
-        error: 'Ruta no encontrada',
-        path: req.path
-    });
-});
+app.use('/api/haciendas', haciendaRoutes);
+app.use('/api/decoraciones', decoracionRoutes);
+app.use('/api/servicios', servicioRoutes);
+app.use('/api/eventos', eventoRoutes);
+
+// ================================
+// Manejo de Errores
+// ================================
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 module.exports = app;

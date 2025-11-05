@@ -1,8 +1,8 @@
 -- ================================================
--- BASE DE DATOS: Elite_Eventos (Mejorada)
+-- BASE DE DATOS: Elite_Eventos (Limpia y Optimizada)
 -- ================================================
 
-DROP DATABASE IF EXISTS EliteEventos;
+DROP DATABASE IF EXISTS Elite_Eventos;
 CREATE DATABASE Elite_Eventos CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE Elite_Eventos;
 
@@ -12,12 +12,14 @@ USE Elite_Eventos;
 CREATE TABLE Usuario (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
-    apellido VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
     telefono VARCHAR(20),
-    correo VARCHAR(150) NOT NULL UNIQUE,
-    contrasena VARCHAR(255) NOT NULL,
+    direccion VARCHAR(200),
+    password VARCHAR(255) NOT NULL,
+    rol ENUM('Admin', 'Cliente', 'Empleado') DEFAULT 'Cliente',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email)
 );
 
 -- ================================================
@@ -60,81 +62,77 @@ CREATE TABLE Servicio_ad (
 );
 
 -- ================================================
--- TABLA: Reserva
+-- TABLA: Evento (Sistema completo de eventos)
 -- ================================================
-CREATE TABLE Reserva (
-    id_reserva INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE Evento (
+    id_evento INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
     id_salon INT NOT NULL,
-    fecha_reser DATE NOT NULL,
+    id_decoracion INT,
+    
+    -- Detalles del evento
     fecha_evento DATE NOT NULL,
-    tipo_evento VARCHAR(100) NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME,
+    numero_invitados INT NOT NULL CHECK (numero_invitados > 0),
+    tipo_evento VARCHAR(100),
     tematica VARCHAR(100),
-    institucion VARCHAR(100),
-    num_invitados INT,
-    musica_vivo BOOLEAN DEFAULT FALSE,
-    tipo_comida VARCHAR(50),
-    bebidas_alcoholicas BOOLEAN DEFAULT FALSE,
-    presupuesto_min DECIMAL(10,2),
-    presupuesto_max DECIMAL(10,2),
+    descripcion TEXT,
+    
+    -- Precios desglosados
+    precio_hacienda DECIMAL(10,2) NOT NULL,
+    precio_decoracion DECIMAL(10,2) DEFAULT 0,
+    precio_servicios DECIMAL(10,2) DEFAULT 0,
+    descuento DECIMAL(5,2) DEFAULT 0,
+    precio_total DECIMAL(10,2) NOT NULL,
+    
+    -- Estado y pago
+    estado ENUM('Pendiente', 'Confirmado', 'Cancelado', 'Completado') DEFAULT 'Pendiente',
     metodo_pago VARCHAR(50),
-    total DECIMAL(10,2),
-    estado VARCHAR(50) DEFAULT 'Pendiente',
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
-    FOREIGN KEY (id_salon) REFERENCES Salon(id_salon)
+    
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_salon) REFERENCES Salon(id_salon) ON DELETE RESTRICT,
+    FOREIGN KEY (id_decoracion) REFERENCES Decoracion(id_decoracion) ON DELETE SET NULL,
+    
+    INDEX idx_fecha (fecha_evento),
+    INDEX idx_estado (estado),
+    INDEX idx_usuario (id_usuario),
+    
+    -- Evitar que una hacienda tenga dos eventos el mismo día/hora
+    UNIQUE KEY unique_salon_fecha_hora (id_salon, fecha_evento, hora_inicio)
 );
 
 -- ================================================
--- TABLAS INTERMEDIAS
+-- TABLA: Evento_Servicio (Relación M:N)
 -- ================================================
-CREATE TABLE Reserva_Decoracion (
-    id_reserva INT NOT NULL,
-    id_decoracion INT NOT NULL,
-    PRIMARY KEY (id_reserva, id_decoracion),
-    FOREIGN KEY (id_reserva) REFERENCES Reserva(id_reserva) ON DELETE CASCADE,
-    FOREIGN KEY (id_decoracion) REFERENCES Decoracion(id_decoracion)
-);
-
-CREATE TABLE Reserva_Servicio (
-    id_reserva INT NOT NULL,
+CREATE TABLE Evento_Servicio (
+    id_evento_servicio INT AUTO_INCREMENT PRIMARY KEY,
+    id_evento INT NOT NULL,
     id_servicio INT NOT NULL,
-    PRIMARY KEY (id_reserva, id_servicio),
-    FOREIGN KEY (id_reserva) REFERENCES Reserva(id_reserva) ON DELETE CASCADE,
-    FOREIGN KEY (id_servicio) REFERENCES Servicio_ad(id_servicio)
-);
-
--- ================================================
--- TABLA: Factura
--- ================================================
-CREATE TABLE Factura (
-    id_factura INT AUTO_INCREMENT PRIMARY KEY,
-    id_reserva INT NOT NULL,
-    fecha_pago DATE NOT NULL,
-    total DECIMAL(10,2) NOT NULL,
-    precio DECIMAL(10,2) NOT NULL,
-    descuento DECIMAL(5,2) DEFAULT 0,
+    cantidad INT DEFAULT 1 CHECK (cantidad > 0),
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_reserva) REFERENCES Reserva(id_reserva)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_evento) REFERENCES Evento(id_evento) ON DELETE CASCADE,
+    FOREIGN KEY (id_servicio) REFERENCES Servicio_ad(id_servicio) ON DELETE RESTRICT,
+    UNIQUE KEY unique_evento_servicio (id_evento, id_servicio)
 );
 
 -- ================================================
--- TABLA: Direccion_Usuario
+-- DATOS INICIALES: Usuarios
 -- ================================================
-CREATE TABLE Direccion_Usuario (
-    id_direccion INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
-    pais VARCHAR(100),
-    departamento VARCHAR(100),
-    ciudad VARCHAR(100),
-    direccion VARCHAR(200),
-    codigo_postal VARCHAR(20),
-    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
-);
+INSERT INTO Usuario (nombre, email, telefono, direccion, password, rol) VALUES
+('Admin Principal', 'admin@eliteventos.com', '3001234567', 'Cali, Valle', '$2a$10$adminhashdemo', 'Admin'),
+('Juan Pérez', 'juan@example.com', '3009876543', 'Cali, Valle', '$2a$10$juanhashdemo', 'Cliente'),
+('María González', 'maria@example.com', '3007654321', 'Palmira, Valle', '$2a$10$mariahashdemo', 'Cliente'),
+('Carlos Rodríguez', 'carlos@example.com', '3001112233', 'Jamundí, Valle', '$2a$10$carloshashdemo', 'Cliente');
 
 -- ================================================
--- DATOS INICIALES: Haciendas
+-- DATOS INICIALES: Haciendas (Salones)
 -- ================================================
 INSERT INTO Salon (nombre, direccion, capacidad, descripcion, precio_base, imagen_url) VALUES
 ('Hacienda El Paraíso', 'Km 5 Vía Cali-Palmira', 200, 'Hermosa hacienda colonial con amplios jardines', 2500000, '/hacienda1.jpg'),
@@ -164,11 +162,33 @@ INSERT INTO Servicio_ad (nombre, descripcion, precio) VALUES
 ('Catering Mesa', 'Servicio a la mesa (por persona)', 120000),
 ('Bebidas Premium', 'Barra libre con licores (por persona)', 50000);
 
+-- ================================================
+-- DATOS DE PRUEBA: Eventos
+-- ================================================
+INSERT INTO Evento (id_usuario, id_salon, id_decoracion, fecha_evento, hora_inicio, hora_fin, numero_invitados, tipo_evento, tematica, descripcion, precio_hacienda, precio_decoracion, precio_servicios, precio_total, estado, metodo_pago) VALUES
+(2, 1, 1, '2025-12-15', '14:00:00', '22:00:00', 150, 'Boda', 'Rústico', 'Boda Juan y Ana', 2500000, 800000, 13500000, 16800000, 'Confirmado', 'Transferencia'),
+(3, 2, 3, '2025-12-20', '10:00:00', '18:00:00', 100, 'Cumpleaños', 'Moderno', 'Cumpleaños 50 años María', 2000000, 1000000, 17000000, 20000000, 'Pendiente', NULL),
+(4, 3, 5, '2026-01-10', '16:00:00', '23:00:00', 120, 'Aniversario', 'Vintage', 'Aniversario empresa TechCorp', 2200000, 950000, 0, 3150000, 'Pendiente', NULL);
 
+-- ================================================
+-- DATOS DE PRUEBA: Servicios en eventos
+-- ================================================
+INSERT INTO Evento_Servicio (id_evento, id_servicio, cantidad, precio_unitario, subtotal) VALUES
+-- Evento 1 (Boda Juan y Ana)
+(1, 1, 1, 1500000, 1500000),   -- Música en vivo
+(1, 2, 150, 80000, 12000000),  -- Catering Buffet para 150 personas
 
--- Crear usuario para la aplicación
-CREATE USER 'elite_admin'@'localhost' IDENTIFIED BY 'elite_password_2024';
+-- Evento 2 (Cumpleaños María)
+(2, 3, 100, 120000, 12000000), -- Catering Mesa para 100 personas
+(2, 4, 100, 50000, 5000000);   -- Bebidas Premium para 100 personas
 
--- Dar permisos a la base de datos EliteEventos
-GRANT ALL PRIVILEGES ON EliteEventos.* TO 'elite_admin'@'localhost';
-FLUSH PRIVILEGES;
+-- ================================================
+-- VERIFICAR DATOS
+-- ================================================
+SELECT '=== RESUMEN DE DATOS ===' as '';
+SELECT 'Usuarios:' as Tabla, COUNT(*) as Total FROM Usuario
+UNION ALL SELECT 'Haciendas:', COUNT(*) FROM Salon
+UNION ALL SELECT 'Decoraciones:', COUNT(*) FROM Decoracion
+UNION ALL SELECT 'Servicios:', COUNT(*) FROM Servicio_ad
+UNION ALL SELECT 'Eventos:', COUNT(*) FROM Evento
+UNION ALL SELECT 'Evento_Servicios:', COUNT(*) FROM Evento_Servicio;
