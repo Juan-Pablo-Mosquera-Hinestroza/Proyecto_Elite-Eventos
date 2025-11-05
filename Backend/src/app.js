@@ -6,7 +6,11 @@ const app = express();
 // ================================
 // Middlewares
 // ================================
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:5177', 'http://127.0.0.1:5173'],
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -14,11 +18,15 @@ app.use(express.urlencoded({ extended: true }));
 // Importar rutas
 // ================================
 const haciendaRoutes = require('./routes/haciendaRoutes');
+const decoracionRoutes = require('./routes/decoracionRoutes');
+const servicioRoutes = require('./routes/servicioRoutes'); // ← NUEVO
 
 // ================================
 // Usar rutas
 // ================================
 app.use('/api/haciendas', haciendaRoutes);
+app.use('/api/decoraciones', decoracionRoutes);
+app.use('/api/servicios', servicioRoutes); // ← NUEVO
 
 // ================================
 // Ruta de prueba
@@ -30,12 +38,15 @@ app.get('/', (req, res) => {
         database: 'MySQL - Elite_Eventos',
         endpoints: {
             haciendas: '/api/haciendas',
-            hacienda: '/api/haciendas/:id'
+            hacienda_por_id: '/api/haciendas/:id',
+            decoraciones: '/api/decoraciones',
+            decoracion_por_id: '/api/decoraciones/:id',
+            servicios: '/api/servicios', // ← NUEVO
+            servicio_por_id: '/api/servicios/:id' // ← NUEVO
         }
     });
 });
 
-// Ruta de health check
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
