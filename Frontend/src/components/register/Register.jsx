@@ -16,6 +16,7 @@ const Registro = () => {
     terminos: false
   });
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
+  const [loading, setLoading] = useState(false);
 
   const togglePasswordVisibility = (field) => {
     if (field === 'password') {
@@ -57,12 +58,16 @@ const Registro = () => {
     setMensaje({ texto, tipo });
     setTimeout(() => {
       setMensaje({ texto: '', tipo: '' });
-    }, 3000);
+    }, 5000);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // ← IMPORTANTE: Prevenir el comportamiento por defecto
+    e.stopPropagation(); // ← IMPORTANTE: Detener la propagación del evento
 
+    console.log('🔵 handleSubmit ejecutado');
+
+    // Validaciones
     if (!formData.nombre || !formData.apellidos || !formData.email || !formData.telefono || !formData.password) {
       mostrarMensaje('Por favor completa todos los campos obligatorios', 'warning');
       return;
@@ -78,21 +83,56 @@ const Registro = () => {
       return;
     }
 
-    console.log('Datos del formulario:', formData);
-    mostrarMensaje('¡Registro exitoso! Redirigiendo...', 'success');
+    setLoading(true);
 
-    setTimeout(() => {
-      setFormData({
-        nombre: '',
-        apellidos: '',
-        email: '',
-        telefono: '',
-        password: '',
-        repetirPassword: '',
-        terminos: false
+    try {
+      const payload = {
+        nombre: `${formData.nombre.trim()} ${formData.apellidos.trim()}`,
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        telefono: formData.telefono.replace(/\s/g, ''),
+        direccion: ''
+      };
+
+      console.log('📡 Enviando POST a /api/auth/register');
+      console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+
+      const response = await fetch('http://localhost:3000/api/auth/register', {
+        method: 'POST', // ← EXPLÍCITO
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
       });
-      setPasswordStrength({ percentage: 0, color: 'danger' });
-    }, 2000);
+
+      console.log('📊 Status HTTP:', response.status);
+      console.log('📊 Response OK:', response.ok);
+
+      const data = await response.json();
+      console.log('📥 Respuesta completa:', JSON.stringify(data, null, 2));
+
+      if (response.ok && data.success) {
+        console.log('✅ Registro exitoso');
+
+        localStorage.setItem('accessToken', data.data.accessToken);
+        localStorage.setItem('refreshToken', data.data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.data.usuario));
+
+        mostrarMensaje('¡Registro exitoso! Redirigiendo...', 'success');
+
+        setTimeout(() => {
+          window.location.href = '/haciendas';
+        }, 2000);
+      } else {
+        console.error('❌ Error del servidor:', data.message);
+        mostrarMensaje(data.message || 'Error al registrar usuario', 'danger');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('❌ Error de red:', error);
+      mostrarMensaje('Error de conexión con el servidor', 'danger');
+      setLoading(false);
+    }
   };
 
   return (
@@ -153,7 +193,7 @@ const Registro = () => {
                 celebrar un momento especial o transformar una visión en una experiencia única.
               </p>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} noValidate>
                 <div className="row">
                   <div className="col-md-6 mb-4">
                     <div className="form-floating">
@@ -165,6 +205,7 @@ const Registro = () => {
                         placeholder="Nombre"
                         value={formData.nombre}
                         onChange={handleInputChange}
+                        disabled={loading}
                         required
                       />
                       <label htmlFor="nombre">Nombre <span className="text-danger">*</span></label>
@@ -180,6 +221,7 @@ const Registro = () => {
                         placeholder="Apellidos"
                         value={formData.apellidos}
                         onChange={handleInputChange}
+                        disabled={loading}
                         required
                       />
                       <label htmlFor="apellidos">Apellidos <span className="text-danger">*</span></label>
@@ -197,6 +239,7 @@ const Registro = () => {
                       placeholder="Correo electrónico"
                       value={formData.email}
                       onChange={handleInputChange}
+                      disabled={loading}
                       required
                     />
                     <label htmlFor="email">Correo electrónico <span className="text-danger">*</span></label>
@@ -213,6 +256,7 @@ const Registro = () => {
                       placeholder="Teléfono"
                       value={formData.telefono}
                       onChange={handleInputChange}
+                      disabled={loading}
                       required
                     />
                     <label htmlFor="telefono">Teléfono <span className="text-danger">*</span></label>
@@ -229,6 +273,7 @@ const Registro = () => {
                       placeholder="Contraseña"
                       value={formData.password}
                       onChange={handleInputChange}
+                      disabled={loading}
                       required
                     />
                     <label htmlFor="password">Contraseña <span className="text-danger">*</span></label>
@@ -236,6 +281,7 @@ const Registro = () => {
                       type="button"
                       className="btn btn-password-toggle"
                       onClick={() => togglePasswordVisibility('password')}
+                      disabled={loading}
                     >
                       <i className={`far fa-eye${showPassword ? '-slash' : ''}`}></i>
                     </button>
@@ -262,6 +308,7 @@ const Registro = () => {
                       placeholder="Repita Contraseña"
                       value={formData.repetirPassword}
                       onChange={handleInputChange}
+                      disabled={loading}
                       required
                     />
                     <label htmlFor="repetirPassword">Repita Contraseña <span className="text-danger">*</span></label>
@@ -269,6 +316,7 @@ const Registro = () => {
                       type="button"
                       className="btn btn-password-toggle"
                       onClick={() => togglePasswordVisibility('confirm')}
+                      disabled={loading}
                     >
                       <i className={`far fa-eye${showConfirmPassword ? '-slash' : ''}`}></i>
                     </button>
@@ -283,6 +331,7 @@ const Registro = () => {
                     name="terminos"
                     checked={formData.terminos}
                     onChange={handleInputChange}
+                    disabled={loading}
                     required
                   />
                   <label className="form-check-label" htmlFor="terminos">
@@ -291,8 +340,22 @@ const Registro = () => {
                 </div>
 
                 <div className="d-grid mb-3">
-                  <button type="submit" className="btn btn-primary btn-lg rounded-pill" id="btn-registro">
-                    <a href="/haciendas" className="text-white text-decoration-none">Registrarme <i className="fas fa-arrow-right ms-2"></i></a>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-lg rounded-pill"
+                    id="btn-registro"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Registrando...
+                      </>
+                    ) : (
+                      <>
+                        Registrarme <i className="fas fa-arrow-right ms-2"></i>
+                      </>
+                    )}
                   </button>
                 </div>
 

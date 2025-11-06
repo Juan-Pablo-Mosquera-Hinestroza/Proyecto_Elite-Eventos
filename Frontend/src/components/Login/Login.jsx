@@ -31,8 +31,12 @@ const Login = () => {
     }, 5000);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    console.log('🔵 Login - handleSubmit ejecutado');
+
     setLoading(true);
 
     // Validaciones básicas
@@ -42,22 +46,67 @@ const Login = () => {
       return;
     }
 
-    // Simulación de inicio de sesión
-    console.log('Datos de login:', formData);
-    
-    setTimeout(() => {
+    try {
+      console.log('📡 Enviando POST a /api/auth/login');
+      console.log('📧 Email:', formData.email);
+
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password
+        })
+      });
+
+      console.log('📊 Status HTTP:', response.status);
+      const data = await response.json();
+      console.log('📥 Respuesta completa:', JSON.stringify(data, null, 2));
+
+      if (response.ok && data.success) {
+        console.log('✅ Login exitoso');
+
+        // Guardar tokens en localStorage
+        localStorage.setItem('accessToken', data.data.accessToken);
+        localStorage.setItem('refreshToken', data.data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.data.usuario));
+
+        console.log('💾 Tokens guardados en localStorage');
+        console.log('👤 Usuario:', data.data.usuario);
+
+        mostrarMensaje('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+
+        // Redirigir según rol
+        setTimeout(() => {
+          if (data.data.usuario.rol === 'Admin' || data.data.usuario.rol === 'Administrador') {
+            console.log('🔑 Redirigiendo a panel de administrador...');
+            window.location.href = '/admin';
+          } else {
+            console.log('🏠 Redirigiendo a haciendas...');
+            window.location.href = '/haciendas';
+          }
+        }, 1500);
+
+      } else {
+        console.error('❌ Error de autenticación:', data.message);
+
+        // Mostrar errores específicos
+        if (data.errors && data.errors.length > 0) {
+          const mensajesError = data.errors.map(err => err.msg).join('. ');
+          mostrarMensaje(mensajesError, 'danger');
+        } else {
+          mostrarMensaje(data.message || 'Credenciales inválidas', 'danger');
+        }
+
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('❌ Error de red:', error);
+      mostrarMensaje('Error de conexión con el servidor', 'danger');
       setLoading(false);
-      mostrarMensaje('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
-      
-      // Limpiar formulario después del login simulado
-      setTimeout(() => {
-        setFormData({
-          email: '',
-          password: '',
-          remember: false
-        });
-      }, 2000);
-    }, 2000);
+    }
   };
 
   return (
@@ -87,7 +136,7 @@ const Login = () => {
             <div className="form-container p-4 p-lg-5 shadow-sm">
               <h2 className="form-title mb-4">Iniciar sesión</h2>
               <p className="mb-4">
-                ¿Es tu primera vez? 
+                ¿Es tu primera vez?
                 <a href="/register" className="text-decoration-none fw-bold ms-1">
                   Regístrate
                 </a>
@@ -97,9 +146,9 @@ const Login = () => {
               {mensaje.texto && (
                 <div className={`alert alert-${mensaje.tipo} alert-dismissible fade show mb-4`} role="alert">
                   {mensaje.texto}
-                  <button 
-                    type="button" 
-                    className="btn-close" 
+                  <button
+                    type="button"
+                    className="btn-close"
                     onClick={() => setMensaje({ texto: '', tipo: '' })}
                   ></button>
                 </div>
@@ -108,56 +157,60 @@ const Login = () => {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <div className="form-floating">
-                    <input 
-                      type="email" 
-                      className="form-control" 
-                      id="email" 
+                    <input
+                      type="email"
+                      className="form-control"
+                      id="email"
                       name="email"
                       placeholder="Correo electrónico"
                       value={formData.email}
                       onChange={handleInputChange}
-                      required 
+                      disabled={loading}
+                      required
                     />
                     <label htmlFor="email">
                       Correo electrónico <span className="text-danger">*</span>
                     </label>
                   </div>
                 </div>
-                
+
                 <div className="mb-4">
                   <div className="form-floating position-relative">
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      className="form-control" 
-                      id="password" 
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="form-control"
+                      id="password"
                       name="password"
                       placeholder="Contraseña"
                       value={formData.password}
                       onChange={handleInputChange}
-                      required 
+                      disabled={loading}
+                      required
                     />
                     <label htmlFor="password">
                       Contraseña <span className="text-danger">*</span>
                     </label>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn btn-link password-toggle"
                       onClick={togglePasswordVisibility}
+                      disabled={loading}
                     >
                       <i className={`far fa-eye${showPassword ? '-slash' : ''}`}></i>
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="d-flex justify-content-between align-items-center mb-4">
                   <div className="form-check">
-                    <input 
-                      className="form-check-input" 
-                      type="checkbox" 
-                      id="remember" 
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="remember"
                       name="remember"
                       checked={formData.remember}
                       onChange={handleInputChange}
+                      disabled={loading}
                     />
                     <label className="form-check-label" htmlFor="remember">
                       Recordarme
@@ -169,11 +222,11 @@ const Login = () => {
                     </a>
                   </small>
                 </div>
-                
+
                 <div className="d-grid mb-3">
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary btn-lg rounded-pill" 
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-lg rounded-pill"
                     id="btn-login"
                     disabled={loading}
                   >
@@ -183,9 +236,9 @@ const Login = () => {
                         Verificando...
                       </>
                     ) : (
-                      <a href="/haciendas" className="text-white text-decoration-none">
+                      <>
                         Ingresar <i className="fas fa-arrow-right ms-2"></i>
-                      </a>
+                      </>
                     )}
                   </button>
                 </div>
@@ -196,10 +249,10 @@ const Login = () => {
           {/* Imagen */}
           <div className="col-lg-5 d-none d-lg-block">
             <div className="image-container">
-              <img 
-                src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" 
-                alt="Evento elegante" 
-                className="img-fluid rounded-elegant" 
+              <img
+                src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                alt="Evento elegante"
+                className="img-fluid rounded-elegant"
               />
               <div className="image-overlay">
                 <h3>Gestiona tus eventos con nosotros</h3>
@@ -210,7 +263,7 @@ const Login = () => {
         </div>
       </section>
 
-     {/* Footer */}
+      {/* Footer */}
       <footer className="footer">
         <div className="container py-5">
           <div className="row">
@@ -231,12 +284,12 @@ const Login = () => {
               <p className="mt-3">
                 <i className="fas fa-map-marker-alt me-2"></i>Cl. 25 #127-220, Barrio Pance, Cali, Valle del Cauca
               </p>
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco" 
-                width="100%" 
-                height="150" 
-                style={{border: 0}} 
-                allowFullScreen="" 
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco"
+                width="100%"
+                height="150"
+                style={{ border: 0 }}
+                allowFullScreen=""
                 loading="lazy"
                 title="Ubicación Elite Eventos"
               ></iframe>
@@ -244,7 +297,7 @@ const Login = () => {
             <div className="col-lg-4 mb-4">
               <h6>Contacto</h6>
               <p className="mt-3">
-                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br/>
+                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br />
                 <i className="fas fa-phone me-2"></i>(57) 312 691 5311
               </p>
             </div>
