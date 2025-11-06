@@ -6,8 +6,15 @@ const HaciendaDetail = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
 
   // ================================
-  // CAMBIO: Convertir hacienda en estado
+  // IMÁGENES LOCALES FIJAS
   // ================================
+  const imagenesLocales = [
+    "./Fotos/Imagenes/Finca_1.jpg",
+    "./Fotos/Imagenes/1.1.jpeg",
+    "./Fotos/Imagenes/1.2.jpg",
+    "./Fotos/Imagenes/1.3.jpg"
+  ];
+
   const [hacienda, setHacienda] = useState({
     id: 1,
     nombre: "El Paraíso Escondido",
@@ -32,16 +39,11 @@ const HaciendaDetail = () => {
       { icono: "fas fa-lightbulb", titulo: "Iluminación", descripcion: "Sistema profesional de iluminación" },
       { icono: "fas fa-swimming-pool", titulo: "Área de Piscina", descripcion: "Acceso y mantenimiento incluido" }
     ],
-    imagenes: [
-      "./Fotos/Imagenes/Finca_1.jpg",
-      "./Fotos/Imagenes/1.1.jpeg",
-      "./Fotos/Imagenes/1.2.jpg",
-      "./Fotos/Imagenes/1.3.jpg"
-    ]
+    imagenes: imagenesLocales // ← USAR IMÁGENES LOCALES
   });
 
   // ================================
-  // useEffect: Actualizar desde la API
+  // useEffect: Actualizar SOLO datos desde MySQL
   // ================================
   useEffect(() => {
     let isMounted = true;
@@ -61,39 +63,19 @@ const HaciendaDetail = () => {
             ubicacion: data.data.direccion
           });
 
-          const datosAnteriores = {
-            nombre: hacienda.nombre,
-            precio: hacienda.precio,
-            capacidad: hacienda.capacidad,
-            ubicacion: hacienda.ubicacion
-          };
-
-          // Actualizar datos
           const haciendaActualizada = {
             ...hacienda,
             nombre: data.data.nombre,
             precio: `$${Number(data.data.precio_base).toLocaleString('es-CO')}`,
             capacidad: `${data.data.capacidad} personas`,
             ubicacion: data.data.direccion,
-            descripcion: data.data.descripcion || hacienda.descripcion
+            descripcion: data.data.descripcion || hacienda.descripcion,
+            imagenes: imagenesLocales // ← MANTENER IMÁGENES LOCALES
           };
 
           setHacienda(haciendaActualizada);
 
-          // Log de confirmación con comparación
-          setTimeout(() => {
-            console.log('✅ Hacienda 1 sincronizada exitosamente');
-            console.log('📊 Comparación de datos:');
-            console.table({
-              'Antes (hardcoded)': datosAnteriores,
-              'Después (MySQL)': {
-                nombre: haciendaActualizada.nombre,
-                precio: haciendaActualizada.precio,
-                capacidad: haciendaActualizada.capacidad,
-                ubicacion: haciendaActualizada.ubicacion
-              }
-            });
-          }, 100);
+          console.log('✅ Hacienda 1 sincronizada (datos MySQL + imágenes locales)');
         }
       } catch (error) {
         console.error('❌ Error al cargar hacienda desde API:', error.message);
@@ -111,7 +93,7 @@ const HaciendaDetail = () => {
   const haciendasSimilares = [
     {
       id: 2,
-      nombre: "Hacienda La Cascada",
+      nombre: "Los Jardines del Sol",
       precio: "$25.000.000",
       capacidad: "200 personas",
       ubicacion: "Jamundí",
@@ -120,7 +102,7 @@ const HaciendaDetail = () => {
     },
     {
       id: 3,
-      nombre: "Hacienda Vista Hermosa",
+      nombre: "Polideportivo El Encanto Natural",
       precio: "$15.000.000",
       capacidad: "100 personas",
       ubicacion: "Yumbo",
@@ -129,7 +111,7 @@ const HaciendaDetail = () => {
     },
     {
       id: 4,
-      nombre: "Hacienda San José",
+      nombre: "Hacienda La Montaña",
       precio: "$35.000.000",
       capacidad: "450 personas",
       ubicacion: "Pance",
@@ -140,21 +122,6 @@ const HaciendaDetail = () => {
 
   const handleThumbnailClick = (index) => {
     setActiveThumbnail(index);
-  };
-
-  const handleReservar = () => {
-    console.log('Reservando hacienda:', hacienda.nombre);
-    alert(`Redirigiendo a opciones de reserva para ${hacienda.nombre}`);
-  };
-
-  const handleContactar = () => {
-    console.log('Contactando asesor...');
-    alert('Función de contacto - En una implementación real redirigiría a Gmail');
-  };
-
-  const handleVerDetallesSimilar = (haciendaSimilar) => {
-    console.log('Viendo detalles de hacienda similar:', haciendaSimilar.nombre);
-    alert(`Viendo detalles de ${haciendaSimilar.nombre}`);
   };
 
   return (
@@ -212,6 +179,7 @@ const HaciendaDetail = () => {
                   alt={hacienda.nombre}
                   className="img-fluid rounded-3"
                   onError={(e) => {
+                    console.warn(`⚠️ Error cargando imagen: ${e.target.src}`);
                     e.target.src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80';
                   }}
                 />
@@ -318,13 +286,6 @@ const HaciendaDetail = () => {
                 <button className="btn btn-primary btn-book" onClick={() => window.location.href = "/opciones"}>
                   Reservar ahora <i className="fas fa-arrow-right ms-2"></i>
                 </button>
-
-                <div className="contact-option">
-                  <p>¿Prefieres hablar con un asesor?</p>
-                  <button className="btn btn-outline-primary" onClick={handleContactar}>
-                    <i className="fas fa-phone-alt me-2"></i> Contactar
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -357,18 +318,7 @@ const HaciendaDetail = () => {
                         <i className="fas fa-map-marker-alt"></i> {haciendaSimilar.ubicacion}
                       </span>
                     </div>
-                    <button
-                      className="btn btn-outline-primary"
-                      onClick={() =>
-                        haciendaSimilar.id === 2
-                          ? window.location.href = "/hacienda2"
-                          : haciendaSimilar.id === 3
-                            ? window.location.href = "/hacienda3"
-                            : haciendaSimilar.id === 4
-                              ? window.location.href = "/hacienda4"
-                              : handleVerDetallesSimilar(haciendaSimilar)
-                      }
-                    >
+                    <button className="btn btn-outline-primary" onClick={() => window.location.href = haciendaSimilar.enlace}>
                       Ver detalles
                     </button>
                   </div>
@@ -388,27 +338,12 @@ const HaciendaDetail = () => {
                 <i className="fas fa-crown me-2"></i>Elite Eventos
               </h5>
               <p className="mt-3">Transformando sueños en experiencias memorables desde 2010.</p>
-              <div className="social-icons mt-3">
-                <a href="#"><i className="fab fa-facebook-f"></i></a>
-                <a href="#"><i className="fab fa-instagram"></i></a>
-                <a href="#"><i className="fab fa-pinterest-p"></i></a>
-                <a href="#"><i className="fab fa-whatsapp"></i></a>
-              </div>
             </div>
             <div className="col-lg-4 mb-4">
               <h6>Ubicación</h6>
               <p className="mt-3">
-                <i className="fas fa-map-marker-alt me-2"></i>Cl. 25 #127-220, Barrio Pance, Cali, Valle del Cauca
+                <i className="fas fa-map-marker-alt me-2"></i>Cl. 25 #127-220, Barrio Pance, Cali
               </p>
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco"
-                width="100%"
-                height="150"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-                title="Ubicación Elite Eventos"
-              ></iframe>
             </div>
             <div className="col-lg-4 mb-4">
               <h6>Contacto</h6>
@@ -418,9 +353,6 @@ const HaciendaDetail = () => {
               </p>
             </div>
           </div>
-        </div>
-        <div className="copyright py-3 text-center">
-          <p className="mb-0 small">© 2023 Elite Eventos. Todos los derechos reservados.</p>
         </div>
       </footer>
     </div>

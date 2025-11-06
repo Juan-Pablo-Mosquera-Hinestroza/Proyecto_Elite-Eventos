@@ -5,9 +5,19 @@ import './Hacienda3.css';
 const Hacienda3Detail = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
 
+  // ================================
+  // IMÁGENES LOCALES FIJAS
+  // ================================
+  const imagenesLocales = [
+    "./Fotos/Imagenes/3.jpeg",
+    "./Fotos/Imagenes/3.1.jpg",
+    "./Fotos/Imagenes/3.2.jpeg",
+    "./Fotos/Imagenes/3.3.jpg"
+  ];
+
   const [polideportivo, setPolideportivo] = useState({
     id: 3,
-    nombre: "Hacienda Vista Hermosa",
+    nombre: "Polideportivo El Encanto Natural",
     precio: "$15.000.000",
     capacidad: "100-150 personas",
     ubicacion: "Yumbo, Valle del Cauca",
@@ -29,12 +39,7 @@ const Hacienda3Detail = () => {
       { icono: "fas fa-lightbulb", titulo: "Iluminación", descripcion: "Sistema LED eficiente" },
       { icono: "fas fa-parking", titulo: "Parqueadero", descripcion: "Amplio y seguro" }
     ],
-    imagenes: [
-      "./Fotos/Imagenes/3.jpeg",
-      "./Fotos/Imagenes/3.1.jpeg",
-      "./Fotos/Imagenes/3.2.jpeg",
-      "./Fotos/Imagenes/3.3.jpeg"
-    ]
+    imagenes: imagenesLocales
   });
 
   useEffect(() => {
@@ -48,19 +53,7 @@ const Hacienda3Detail = () => {
         const data = await response.json();
 
         if (data.success && isMounted) {
-          console.log('📦 Datos recibidos de MySQL:', {
-            nombre: data.data.nombre,
-            precio: data.data.precio_base,
-            capacidad: data.data.capacidad,
-            ubicacion: data.data.direccion
-          });
-
-          const datosAnteriores = {
-            nombre: polideportivo.nombre,
-            precio: polideportivo.precio,
-            capacidad: polideportivo.capacidad,
-            ubicacion: polideportivo.ubicacion
-          };
+          console.log('📦 Datos recibidos de MySQL para Hacienda 3');
 
           const polideportivoActualizado = {
             ...polideportivo,
@@ -68,24 +61,12 @@ const Hacienda3Detail = () => {
             precio: `$${Number(data.data.precio_base).toLocaleString('es-CO')}`,
             capacidad: `${data.data.capacidad} personas`,
             ubicacion: data.data.direccion,
-            descripcion: data.data.descripcion || polideportivo.descripcion
+            descripcion: data.data.descripcion || polideportivo.descripcion,
+            imagenes: imagenesLocales // ← MANTENER IMÁGENES LOCALES
           };
 
           setPolideportivo(polideportivoActualizado);
-
-          setTimeout(() => {
-            console.log('✅ Polideportivo 3 sincronizado exitosamente');
-            console.log('📊 Comparación de datos:');
-            console.table({
-              'Antes (hardcoded)': datosAnteriores,
-              'Después (MySQL)': {
-                nombre: polideportivoActualizado.nombre,
-                precio: polideportivoActualizado.precio,
-                capacidad: polideportivoActualizado.capacidad,
-                ubicacion: polideportivoActualizado.ubicacion
-              }
-            });
-          }, 100);
+          console.log('✅ Polideportivo 3 sincronizado (datos MySQL + imágenes locales)');
         }
       } catch (error) {
         console.error('❌ Error al cargar polideportivo desde API:', error.message);
@@ -112,7 +93,7 @@ const Hacienda3Detail = () => {
     },
     {
       id: 2,
-      nombre: "Hacienda La Cascada",
+      nombre: "Los Jardines del Sol",
       precio: "$25.000.000",
       capacidad: "200 personas",
       ubicacion: "Jamundí",
@@ -121,7 +102,7 @@ const Hacienda3Detail = () => {
     },
     {
       id: 4,
-      nombre: "Hacienda San José",
+      nombre: "Hacienda La Montaña",
       precio: "$35.000.000",
       capacidad: "450 personas",
       ubicacion: "Pance",

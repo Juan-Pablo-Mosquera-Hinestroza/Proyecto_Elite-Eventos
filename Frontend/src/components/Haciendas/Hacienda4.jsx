@@ -5,9 +5,19 @@ import './Hacienda4.css';
 const Hacienda4Detail = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
 
+  // ================================
+  // IMÁGENES LOCALES FIJAS
+  // ================================
+  const imagenesLocales = [
+    "./Fotos/Imagenes/Finca_4.jpg",
+    "./Fotos/Imagenes/4.1.jpg",
+    "./Fotos/Imagenes/4.2.jpg",
+    "./Fotos/Imagenes/4.3.jpg"
+  ];
+
   const [hacienda, setHacienda] = useState({
     id: 4,
-    nombre: "Hacienda San José",
+    nombre: "Hacienda La Montaña",
     precio: "$35.000.000",
     capacidad: "450-500 personas",
     ubicacion: "Pance, Valle del Cauca",
@@ -29,12 +39,7 @@ const Hacienda4Detail = () => {
       { icono: "fas fa-lightbulb", titulo: "Iluminación de Gala", descripcion: "Sistema inteligente completo" },
       { icono: "fas fa-helicopter", titulo: "Helipuerto", descripcion: "Acceso VIP incluido" }
     ],
-    imagenes: [
-      "./Fotos/Imagenes/Finca_4.jpg",
-      "./Fotos/Imagenes/4.1.jpeg",
-      "./Fotos/Imagenes/4.2.jpeg",
-      "./Fotos/Imagenes/4.3.jpeg"
-    ]
+    imagenes: imagenesLocales
   });
 
   useEffect(() => {
@@ -48,19 +53,7 @@ const Hacienda4Detail = () => {
         const data = await response.json();
 
         if (data.success && isMounted) {
-          console.log('📦 Datos recibidos de MySQL:', {
-            nombre: data.data.nombre,
-            precio: data.data.precio_base,
-            capacidad: data.data.capacidad,
-            ubicacion: data.data.direccion
-          });
-
-          const datosAnteriores = {
-            nombre: hacienda.nombre,
-            precio: hacienda.precio,
-            capacidad: hacienda.capacidad,
-            ubicacion: hacienda.ubicacion
-          };
+          console.log('📦 Datos recibidos de MySQL para Hacienda 4');
 
           const haciendaActualizada = {
             ...hacienda,
@@ -68,24 +61,12 @@ const Hacienda4Detail = () => {
             precio: `$${Number(data.data.precio_base).toLocaleString('es-CO')}`,
             capacidad: `${data.data.capacidad} personas`,
             ubicacion: data.data.direccion,
-            descripcion: data.data.descripcion || hacienda.descripcion
+            descripcion: data.data.descripcion || hacienda.descripcion,
+            imagenes: imagenesLocales // ← MANTENER IMÁGENES LOCALES
           };
 
           setHacienda(haciendaActualizada);
-
-          setTimeout(() => {
-            console.log('✅ Hacienda 4 sincronizada exitosamente');
-            console.log('📊 Comparación de datos:');
-            console.table({
-              'Antes (hardcoded)': datosAnteriores,
-              'Después (MySQL)': {
-                nombre: haciendaActualizada.nombre,
-                precio: haciendaActualizada.precio,
-                capacidad: haciendaActualizada.capacidad,
-                ubicacion: haciendaActualizada.ubicacion
-              }
-            });
-          }, 100);
+          console.log('✅ Hacienda 4 sincronizada (datos MySQL + imágenes locales)');
         }
       } catch (error) {
         console.error('❌ Error al cargar hacienda desde API:', error.message);
@@ -112,7 +93,7 @@ const Hacienda4Detail = () => {
     },
     {
       id: 2,
-      nombre: "Hacienda La Cascada",
+      nombre: "Los Jardines del Sol",
       precio: "$25.000.000",
       capacidad: "200 personas",
       ubicacion: "Jamundí",
@@ -121,7 +102,7 @@ const Hacienda4Detail = () => {
     },
     {
       id: 3,
-      nombre: "Hacienda Vista Hermosa",
+      nombre: "Polideportivo El Encanto Natural",
       precio: "$15.000.000",
       capacidad: "100 personas",
       ubicacion: "Yumbo",

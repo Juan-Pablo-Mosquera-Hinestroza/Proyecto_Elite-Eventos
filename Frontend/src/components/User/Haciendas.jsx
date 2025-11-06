@@ -4,16 +4,23 @@ import './Haciendas.css';
 
 const Haciendas = () => {
   // ================================
-  // ESTADOS: Convertir haciendas en estado reactivo
+  // ESTADOS: Imágenes locales como base
   // ================================
+  const imagenesLocales = {
+    1: "./Fotos/Imagenes/Finca_1.jpg",
+    2: "./Fotos/Imagenes/2.jpeg",
+    3: "./Fotos/Imagenes/3.jpeg",
+    4: "./Fotos/Imagenes/Finca_4.jpg"
+  };
+
   const [haciendas, setHaciendas] = useState([
     {
       id: 1,
-      nombre: "El Paraiso Escondido",
+      nombre: "El Paraíso Escondido",
       precio: "$20.000.000",
       capacidad: "150 personas",
       ubicacion: "Cali, Valle",
-      imagen: "./Fotos/Imagenes/Finca_1.jpg",
+      imagen: imagenesLocales[1],
       enlace: "/Hacienda1"
     },
     {
@@ -22,7 +29,7 @@ const Haciendas = () => {
       precio: "$25.000.000",
       capacidad: "200 personas",
       ubicacion: "Jamundí, Valle",
-      imagen: "./Fotos/Imagenes/2.jpeg",
+      imagen: imagenesLocales[2],
       enlace: "/Hacienda2"
     },
     {
@@ -31,7 +38,7 @@ const Haciendas = () => {
       precio: "$15.000.000",
       capacidad: "100 personas",
       ubicacion: "Yumbo, Valle",
-      imagen: "./Fotos/Imagenes/3.jpeg",
+      imagen: imagenesLocales[3],
       enlace: "/Hacienda3"
     },
     {
@@ -40,15 +47,15 @@ const Haciendas = () => {
       precio: "$35.000.000",
       capacidad: "450 personas",
       ubicacion: "Pance, Valle",
-      imagen: "./Fotos/Imagenes/Finca_4.jpg",
-      enlace: "Haciendas/Hacienda_4.html"
+      imagen: imagenesLocales[4],
+      enlace: "/Hacienda4"
     }
   ]);
 
   const [loading, setLoading] = useState(true);
 
   // ================================
-  // useEffect: Verificar y actualizar datos desde MySQL
+  // useEffect: Actualizar SOLO datos dinámicos desde MySQL
   // ================================
   useEffect(() => {
     let isMounted = true;
@@ -61,41 +68,50 @@ const Haciendas = () => {
         if (data.success && Array.isArray(data.data) && isMounted) {
           console.log('📦 Haciendas desde MySQL:', data.data.length, 'registros');
 
-          // Mapear los datos de MySQL al formato del componente
+          // Mapear datos de MySQL pero MANTENER imágenes locales
           const haciendasFormateadas = data.data.map((h) => ({
             id: h.id_salon,
             nombre: h.nombre,
             precio: `$${Number(h.precio_base).toLocaleString('es-CO')}`,
             capacidad: `${h.capacidad} personas`,
             ubicacion: h.direccion,
-            imagen: h.imagen_url || "./Fotos/Imagenes/Finca_1.jpg",
+            imagen: imagenesLocales[h.id_salon] || "./Fotos/Imagenes/Finca_1.jpg", // ← PRIORIZAR IMÁGENES LOCALES
             enlace: `/Hacienda${h.id_salon}`
           }));
 
-          // Comparar datos
-          const hayDiferencias = JSON.stringify(haciendas.map(h => ({ nombre: h.nombre, precio: h.precio }))) !==
-            JSON.stringify(haciendasFormateadas.map(h => ({ nombre: h.nombre, precio: h.precio })));
+          // Comparar solo datos relevantes (no imágenes)
+          const hayDiferencias = JSON.stringify(haciendas.map(h => ({
+            nombre: h.nombre,
+            precio: h.precio,
+            capacidad: h.capacidad
+          }))) !== JSON.stringify(haciendasFormateadas.map(h => ({
+            nombre: h.nombre,
+            precio: h.precio,
+            capacidad: h.capacidad
+          })));
 
           if (hayDiferencias) {
-            console.log('📊 Sincronizando haciendas desde MySQL...');
+            console.log('📊 Sincronizando datos desde MySQL (manteniendo imágenes locales)...');
             setHaciendas(haciendasFormateadas);
-            // Esperar al próximo render para confirmar
+
             setTimeout(() => {
-              console.log('✅ Sincronización completada exitosamente');
+              console.log('✅ Sincronización completada');
               console.table(haciendasFormateadas.map(h => ({
                 ID: h.id,
                 Nombre: h.nombre,
                 Precio: h.precio,
                 Capacidad: h.capacidad,
-                Ubicación: h.ubicacion
+                Ubicación: h.ubicacion,
+                Imagen: h.imagen // Verificar que sea la ruta local
               })));
             }, 100);
           } else {
-            console.log('✅ Haciendas ya están sincronizadas (sin cambios)');
+            console.log('✅ Datos ya sincronizados (sin cambios)');
           }
         }
       } catch (error) {
         console.error('❌ Error al cargar haciendas:', error.message);
+        console.log('⚠️ Usando datos locales del estado inicial');
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -187,6 +203,8 @@ const Haciendas = () => {
                     className="card-img-top"
                     alt={hacienda.nombre}
                     onError={(e) => {
+                      console.warn(`⚠️ Error cargando imagen local: ${hacienda.imagen}`);
+                      // Fallback a imagen de Unsplash si la local falla
                       e.target.src = 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80';
                     }}
                   />
@@ -206,17 +224,10 @@ const Haciendas = () => {
                   </div>
                   <button
                     className="btn btn-outline-primary mt-3 w-100 rounded-pill"
-                    onClick={() =>
-                      hacienda.id === 1
-                        ? window.location.href = "/hacienda1"
-                        : hacienda.id === 2
-                          ? window.location.href = "/hacienda2"
-                          : hacienda.id === 3
-                            ? window.location.href = "/hacienda3"
-                            : hacienda.id === 4
-                              ? window.location.href = "/hacienda4"
-                              : handleVerDetalles(hacienda)
-                    }
+                    onClick={() => {
+                      console.log(`🏠 Navegando a ${hacienda.enlace}`);
+                      window.location.href = hacienda.enlace;
+                    }}
                   >
                     Ver detalles
                   </button>

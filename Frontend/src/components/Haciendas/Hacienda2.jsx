@@ -5,14 +5,24 @@ import './Hacienda2.css';
 const Hacienda2Detail = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
 
+  // ================================
+  // IMÁGENES LOCALES FIJAS
+  // ================================
+  const imagenesLocales = [
+    "./Fotos/Imagenes/2.jpeg",
+    "./Fotos/Imagenes/2.1.jpg",
+    "./Fotos/Imagenes/2.2.jpg",
+    "./Fotos/Imagenes/2.3.jpg"
+  ];
+
   const [hacienda, setHacienda] = useState({
     id: 2,
-    nombre: "Hacienda La Cascada",
+    nombre: "Los Jardines del Sol",
     precio: "$25.000.000",
     capacidad: "200-300 personas",
     ubicacion: "Jamundí, Valle del Cauca",
     calificacion: "4.8/5 (52 reseñas)",
-    descripcion: "Una experiencia única rodeada de naturaleza y elegancia. Hacienda La Cascada combina espacios al aire libre con áreas techadas de lujo, perfecta para bodas y eventos corporativos de gran escala.",
+    descripcion: "Una experiencia única rodeada de naturaleza y elegancia. Hacienda Los Jardines del Sol combina espacios al aire libre con áreas techadas de lujo, perfecta para bodas y eventos corporativos de gran escala.",
     caracteristicas: [
       "Capacidad para 200-300 invitados",
       "5 jardines temáticos diferentes",
@@ -29,12 +39,7 @@ const Hacienda2Detail = () => {
       { icono: "fas fa-lightbulb", titulo: "Iluminación Artística", descripcion: "Efectos especiales LED" },
       { icono: "fas fa-music", titulo: "Sistema de Audio", descripcion: "Equipo profesional de sonido" }
     ],
-    imagenes: [
-      "./Fotos/Imagenes/2.jpeg",
-      "./Fotos/Imagenes/2.1.jpeg",
-      "./Fotos/Imagenes/2.2.jpeg",
-      "./Fotos/Imagenes/2.3.jpeg"
-    ]
+    imagenes: imagenesLocales
   });
 
   useEffect(() => {
@@ -48,19 +53,7 @@ const Hacienda2Detail = () => {
         const data = await response.json();
 
         if (data.success && isMounted) {
-          console.log('📦 Datos recibidos de MySQL:', {
-            nombre: data.data.nombre,
-            precio: data.data.precio_base,
-            capacidad: data.data.capacidad,
-            ubicacion: data.data.direccion
-          });
-
-          const datosAnteriores = {
-            nombre: hacienda.nombre,
-            precio: hacienda.precio,
-            capacidad: hacienda.capacidad,
-            ubicacion: hacienda.ubicacion
-          };
+          console.log('📦 Datos recibidos de MySQL para Hacienda 2');
 
           const haciendaActualizada = {
             ...hacienda,
@@ -68,24 +61,12 @@ const Hacienda2Detail = () => {
             precio: `$${Number(data.data.precio_base).toLocaleString('es-CO')}`,
             capacidad: `${data.data.capacidad} personas`,
             ubicacion: data.data.direccion,
-            descripcion: data.data.descripcion || hacienda.descripcion
+            descripcion: data.data.descripcion || hacienda.descripcion,
+            imagenes: imagenesLocales // ← MANTENER IMÁGENES LOCALES
           };
 
           setHacienda(haciendaActualizada);
-
-          setTimeout(() => {
-            console.log('✅ Hacienda 2 sincronizada exitosamente');
-            console.log('📊 Comparación de datos:');
-            console.table({
-              'Antes (hardcoded)': datosAnteriores,
-              'Después (MySQL)': {
-                nombre: haciendaActualizada.nombre,
-                precio: haciendaActualizada.precio,
-                capacidad: haciendaActualizada.capacidad,
-                ubicacion: haciendaActualizada.ubicacion
-              }
-            });
-          }, 100);
+          console.log('✅ Hacienda 2 sincronizada (datos MySQL + imágenes locales)');
         }
       } catch (error) {
         console.error('❌ Error al cargar hacienda desde API:', error.message);
@@ -112,7 +93,7 @@ const Hacienda2Detail = () => {
     },
     {
       id: 3,
-      nombre: "Hacienda Vista Hermosa",
+      nombre: "Polideportivo El Encanto Natural",
       precio: "$15.000.000",
       capacidad: "100 personas",
       ubicacion: "Yumbo",
@@ -121,7 +102,7 @@ const Hacienda2Detail = () => {
     },
     {
       id: 4,
-      nombre: "Hacienda San José",
+      nombre: "Hacienda La Montaña",
       precio: "$35.000.000",
       capacidad: "450 personas",
       ubicacion: "Pance",
