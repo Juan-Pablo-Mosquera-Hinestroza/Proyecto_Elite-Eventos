@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useReserva } from '../../contexts/ReservaContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Hacienda2.css';
 
 const Hacienda2Detail = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
+  const navigate = useNavigate();
+  const { updateReserva } = useReserva();
 
   // ================================
   // IMÁGENES LOCALES FIJAS
@@ -80,6 +84,21 @@ const Hacienda2Detail = () => {
       isMounted = false;
     };
   }, []);
+
+  const handleReservar = () => {
+    updateReserva({
+      id_salon: hacienda.id,
+      haciendaNombre: hacienda.nombre,
+      precio_hacienda: parseFloat(hacienda.precio.replace(/[$,]/g, '')),
+      capacidad_maxima: parseInt(hacienda.capacidad.split('-')[1] || hacienda.capacidad.split(' ')[0]),
+      direccion_hacienda: hacienda.ubicacion
+    });
+
+    console.log('📍 Hacienda seleccionada:', hacienda.nombre);
+    console.log('🆔 ID Salón:', hacienda.id);
+
+    navigate('/opciones');
+  };
 
   const haciendasSimilares = [
     {
@@ -220,7 +239,7 @@ const Hacienda2Detail = () => {
                   <i className="fas fa-star"></i>
                   <div><h5>Calificación</h5><p>{hacienda.calificacion}</p></div>
                 </div>
-                <button className="btn btn-primary btn-book" onClick={() => window.location.href = "/opciones"}>
+                <button className="btn btn-primary btn-book" onClick={handleReservar}>
                   Reservar ahora <i className="fas fa-arrow-right ms-2"></i>
                 </button>
               </div>

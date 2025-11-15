@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
-import { Container, Navbar, Nav } from 'react-bootstrap'; // <-- Importar componentes necesarios
+import React, { useState, useEffect } from 'react';
+import { Container, Navbar, Nav } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { useReserva } from '../../contexts/ReservaContext'; // ← IMPORTAR
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Factura.css';
 
 const ResumenPedido = () => {
+  const navigate = useNavigate();
+  const { reservaData, updateReserva } = useReserva(); // ← USAR CONTEXTO
+
   const [formData, setFormData] = useState({
-    nombreCliente: '',
-    fechaEvento: '',
-    tipoEvento: '',
-    totalInvitados: '',
-    ubicacion: '',
-    observaciones: ''
+    nombreCliente: `${reservaData.nombre} ${reservaData.apellidos}`,
+    fechaEvento: reservaData.fecha_evento || '',
+    tipoEvento: reservaData.tipo_evento || '',
+    totalInvitados: reservaData.numero_invitados || '',
+    ubicacion: reservaData.ubicacion || '',
+    observaciones: reservaData.observaciones || ''
   });
 
   const handleInputChange = (e) => {
@@ -26,6 +31,27 @@ const ResumenPedido = () => {
     // Aquí puedes manejar el envío del formulario
     console.log('Datos del formulario:', formData);
     // En una aplicación real, aquí enviarías los datos a un backend
+  };
+
+  const handleContinuar = () => {
+    const requiredFields = ['nombreCliente', 'fechaEvento', 'tipoEvento', 'totalInvitados', 'ubicacion'];
+    const isValid = requiredFields.every(field => formData[field]?.toString().trim() !== '');
+
+    if (!isValid) {
+      alert('Por favor, complete todos los campos requeridos antes de continuar.');
+      return;
+    }
+
+    // Guardar en contexto
+    updateReserva({
+      numero_invitados: parseInt(formData.totalInvitados),
+      ubicacion: formData.ubicacion,
+      observaciones: formData.observaciones,
+      descripcion: formData.observaciones // Alias para backend
+    });
+
+    // Navegar a método de pago
+    navigate('/metodo');
   };
 
   return (
@@ -153,28 +179,18 @@ const ResumenPedido = () => {
           </div>
 
           {/* Botón de Confirmar */}
-          <a 
-            className="boton" 
-            href="/Metodo"
-            onClick={(e) => {
-              // Validación básica antes de permitir la navegación
-              const requiredFields = ['nombreCliente', 'fechaEvento', 'tipoEvento', 'totalInvitados', 'ubicacion'];
-              const isValid = requiredFields.every(field => formData[field].trim() !== '');
-              
-              if (!isValid) {
-                e.preventDefault();
-                alert('Por favor, complete todos los campos requeridos antes de continuar.');
-              }
-            }}
+          <button
+            className="boton"
+            onClick={handleContinuar}
           >
             <i className="fas fa-check-circle"></i> Confirmar Reserva
-          </a>
+          </button>
 
           {/* Mensaje Informativo */}
           <div className="mensaje">
             <i className="fas fa-info-circle"></i>
             <p>
-              📅 Estamos verificando la disponibilidad y nos pondremos en contacto contigo 
+              📅 Estamos verificando la disponibilidad y nos pondremos en contacto contigo
               en las próximas 24 horas para confirmar todos los detalles de tu evento especial.
             </p>
           </div>

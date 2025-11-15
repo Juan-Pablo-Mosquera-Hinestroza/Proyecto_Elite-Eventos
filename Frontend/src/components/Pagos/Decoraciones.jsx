@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Navbar, Nav } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { useReserva } from '../../contexts/ReservaContext'; // ← IMPORTAR
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Decoraciones.css';
 
 const DecoracionServicios = () => {
+  const navigate = useNavigate();
+  const { reservaData, updateReserva } = useReserva(); // ← USAR CONTEXTO
+
   const [selectedDecoration, setSelectedDecoration] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
 
@@ -232,6 +237,21 @@ const DecoracionServicios = () => {
     fetchData();
   }, []); // Solo ejecutar al montar el componente
 
+  // Cargar datos previos del contexto
+  useEffect(() => {
+    if (reservaData.id_decoracion) {
+      const deco = decorationOptions.find(d => d.id === reservaData.id_decoracion);
+      setSelectedDecoration(deco);
+    }
+    if (reservaData.servicios.length > 0) {
+      // Reconstruir servicios seleccionados
+      const serviciosActivos = serviceOptions.filter(s =>
+        reservaData.servicios.some(rs => rs.id_servicio === s.id)
+      );
+      setSelectedServices(serviciosActivos);
+    }
+  }, [decorationOptions, serviceOptions]);
+
   // Manejar selección de decoración
   const handleSelectDecoration = (decoration) => {
     setSelectedDecoration(decoration);
@@ -263,6 +283,36 @@ const DecoracionServicios = () => {
       currency: 'COP',
       minimumFractionDigits: 0
     }).format(price);
+  };
+
+  // Manejar continuar a Factura
+  const handleContinuar = () => {
+    if (!selectedDecoration) {
+      alert('Por favor selecciona una decoración');
+      return;
+    }
+
+    // Calcular totales
+    const serviciosFormateados = selectedServices.map(s => ({
+      id_servicio: s.id,
+      cantidad: 1, // Ajustar según necesidad
+      precio_unitario: s.price,
+      subtotal: s.price
+    }));
+
+    const totalServicios = serviciosFormateados.reduce((sum, s) => sum + s.subtotal, 0);
+
+    // Guardar en contexto
+    updateReserva({
+      id_decoracion: selectedDecoration.id,
+      decoracionNombre: selectedDecoration.name,
+      precio_decoracion: selectedDecoration.price,
+      servicios: serviciosFormateados,
+      precio_servicios: totalServicios
+    });
+
+    // Navegar a factura
+    navigate('/factura');
   };
 
   return (
@@ -387,9 +437,9 @@ const DecoracionServicios = () => {
               <span>Total:</span>
               <span>{formatPrice(calculateTotal())}</span>
             </div>
-            <a className="btn-continue" href="../Factura_pago/Factura.html">
+            <button className="btn-continue" onClick={handleContinuar}>
               Continuar con el Pago <i className="fas fa-arrow-right"></i>
-            </a>
+            </button>
           </div>
         </section>
       </div>

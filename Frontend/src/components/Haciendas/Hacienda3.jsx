@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useReserva } from '../../contexts/ReservaContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Hacienda3.css';
 
 const Hacienda3Detail = () => {
   const [activeThumbnail, setActiveThumbnail] = useState(0);
+  const navigate = useNavigate();
+  const { updateReserva } = useReserva();
 
   // ================================
   // IMÁGENES LOCALES FIJAS
@@ -80,6 +84,21 @@ const Hacienda3Detail = () => {
       isMounted = false;
     };
   }, []);
+
+  const handleReservar = () => {
+    updateReserva({
+      id_salon: polideportivo.id,
+      haciendaNombre: polideportivo.nombre,
+      precio_hacienda: parseFloat(polideportivo.precio.replace(/[$,]/g, '')),
+      capacidad_maxima: parseInt(polideportivo.capacidad.split('-')[1] || polideportivo.capacidad.split(' ')[0]),
+      direccion_hacienda: polideportivo.ubicacion
+    });
+
+    console.log('📍 Polideportivo seleccionado:', polideportivo.nombre);
+    console.log('🆔 ID Salón:', polideportivo.id);
+
+    navigate('/opciones');
+  };
 
   const haciendasSimilares = [
     {
@@ -220,7 +239,7 @@ const Hacienda3Detail = () => {
                   <i className="fas fa-star"></i>
                   <div><h5>Calificación</h5><p>{polideportivo.calificacion}</p></div>
                 </div>
-                <button className="btn btn-primary btn-book" onClick={() => window.location.href = "/opciones"}>
+                <button className="btn btn-primary btn-book" onClick={handleReservar}>
                   Reservar ahora <i className="fas fa-arrow-right ms-2"></i>
                 </button>
               </div>
