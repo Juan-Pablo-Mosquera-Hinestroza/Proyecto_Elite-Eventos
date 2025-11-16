@@ -25,10 +25,8 @@ const EventoServicio = sequelize.define('EventoServicio', {
     },
     cantidad: {
         type: DataTypes.INTEGER,
-        defaultValue: 1,
-        validate: {
-            min: 1
-        }
+        allowNull: false,
+        defaultValue: 1
     },
     precio_unitario: {
         type: DataTypes.DECIMAL(10, 2),
@@ -39,7 +37,7 @@ const EventoServicio = sequelize.define('EventoServicio', {
         allowNull: false
     }
 }, {
-    tableName: 'Evento_Servicio',
+    tableName: 'Evento_Servicio', // ✅ CAMBIAR: Con guión bajo para coincidir con MySQL
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'

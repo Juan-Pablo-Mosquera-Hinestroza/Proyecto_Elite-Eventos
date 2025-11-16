@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useReserva } from '../../contexts/ReservaContext'; // ← IMPORTAR
+import { useReserva } from '../../contexts/ReservaContext';
+import eventosAPI from '../../api/eventosAPI'; // ✅ 1. AGREGAR IMPORT
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Metodo.css';
 
 const MetodoPago = () => {
   const navigate = useNavigate();
-  const { reservaData, updateReserva, resetReserva } = useReserva(); // ← USAR CONTEXTO
+  const { reservaData, updateReserva, resetReserva } = useReserva();
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     planPago: '',
@@ -32,7 +34,11 @@ const MetodoPago = () => {
     impuestos: 0
   });
 
-  // ✅ AGREGAR useEffect para debugging
+  const [totalPagar, setTotalPagar] = useState(0);
+  const [descuentoAplicado, setDescuentoAplicado] = useState(0);
+  const [porcentajeDescuento, setPorcentajeDescuento] = useState(0);
+
+  // ✅ Debug inicial
   useEffect(() => {
     console.log('🔍 ========== DEBUG METODO.JSX ==========');
     console.log('📦 reservaData completo:', reservaData);
@@ -40,70 +46,94 @@ const MetodoPago = () => {
     console.log('🎨 precio_decoracion:', reservaData.precio_decoracion, typeof reservaData.precio_decoracion);
     console.log('⚙️ precio_servicios:', reservaData.precio_servicios, typeof reservaData.precio_servicios);
     console.log('📊 Valores cargados:', valores);
+    console.log('💳 Plan de pago:', formData.planPago);
+    console.log('💵 Total a pagar:', totalPagar);
+    console.log('🎁 Descuento aplicado:', descuentoAplicado);
+    console.log('📊 Porcentaje descuento:', porcentajeDescuento + '%');
     console.log('🔍 ======================================');
-  }, [reservaData]);
+  }, [reservaData, valores, totalPagar, descuentoAplicado, porcentajeDescuento]);
 
-  const [totalPagar, setTotalPagar] = useState(0);
-  const [loading, setLoading] = useState(false);
-
-  // Calcular impuestos (19% IVA ejemplo)
+  // ✅ Calcular impuestos
   useEffect(() => {
     const subtotal = valores.hacienda + valores.decoracion + valores.servicios;
     const impuestos = subtotal * 0.19;
-    setValores(prev => ({ ...prev, impuestos }));
 
-    const total = subtotal + impuestos;
-    setTotalPagar(total);
+    setValores(prev => ({
+      ...prev,
+      impuestos
+    }));
 
-    // Actualizar precio total en contexto
-    updateReserva({ precio_total: total });
+    console.log('🧮 Cálculo de impuestos:', {
+      hacienda: valores.hacienda,
+      decoracion: valores.decoracion,
+      servicios: valores.servicios,
+      subtotal,
+      impuestos
+    });
   }, [valores.hacienda, valores.decoracion, valores.servicios]);
 
-  // Manejar cambios en el formulario
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
+  // ✅ 3. Calcular total a pagar según plan de pago (DESCUENTOS CORREGIDOS)
+  useEffect(() => {
+    const subtotal = valores.hacienda + valores.decoracion + valores.servicios;
+    const impuestos = subtotal * 0.19;
+    const totalBase = subtotal + impuestos;
+    let total = totalBase;
+    let descuento = 0;
+    let porcentaje = 0;
 
-  // Manejar cambio de método de pago
-  const handleMetodoPagoChange = (metodo) => {
-    setFormData(prevState => ({
-      ...prevState,
-      metodoPago: metodo
-    }));
-  };
+    if (formData.planPago === 'completo') {
+      // ✅ Pago completo: 10% de descuento
+      porcentaje = 10;
+      descuento = totalBase * 0.10;
+      total = totalBase - descuento;
 
-  // Manejar cambio en plan de pago
-  const handlePlanPagoChange = (e) => {
-    const plan = e.target.value;
-    setFormData(prevState => ({
-      ...prevState,
-      planPago: plan
-    }));
+      console.log('✅ Pago Completo (10% descuento):', {
+        total_base: totalBase,
+        descuento,
+        total_final: total
+      });
+    } else if (formData.planPago === 'inicial') {
+      // ✅ Pago inicial: 5% de descuento + 50% del total
+      porcentaje = 5;
+      descuento = totalBase * 0.05;
+      const totalConDescuento = totalBase - descuento;
+      total = totalConDescuento * 0.5; // Pagar 50%
 
-    const totalBase = calcularTotal();
-    let nuevoTotal = totalBase;
-
-    if (plan === 'completo') {
-      // Aplicar 5% de descuento
-      nuevoTotal = totalBase * 0.95;
-    } else if (plan === 'inicial') {
-      // Pago inicial del 50%
-      nuevoTotal = totalBase * 0.5;
+      console.log('✅ Pago Inicial (5% descuento + 50%):', {
+        total_base: totalBase,
+        descuento,
+        total_con_descuento: totalConDescuento,
+        pago_inicial_50: total,
+        restante: totalConDescuento - total
+      });
     }
 
-    setTotalPagar(nuevoTotal);
+    setTotalPagar(total);
+    setDescuentoAplicado(descuento);
+    setPorcentajeDescuento(porcentaje);
+
+    console.log('🎯 Total final a pagar:', total);
+  }, [valores.hacienda, valores.decoracion, valores.servicios, valores.impuestos, formData.planPago]);
+
+  // ✅ Calcular el total completo con descuento
+  const calcularTotalCompleto = () => {
+    const subtotal = valores.hacienda + valores.decoracion + valores.servicios;
+    const impuestos = subtotal * 0.19;
+    const totalBase = subtotal + impuestos;
+
+    if (formData.planPago === 'completo') {
+      return totalBase - (totalBase * 0.10); // 10% descuento
+    } else if (formData.planPago === 'inicial') {
+      return totalBase - (totalBase * 0.05); // 5% descuento (total completo, no solo el inicial)
+    }
+
+    return totalBase;
   };
 
-  // Calcular total
   const calcularTotal = () => {
     return valores.hacienda + valores.decoracion + valores.servicios + valores.impuestos;
   };
 
-  // Formatear moneda
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -112,89 +142,186 @@ const MetodoPago = () => {
     }).format(value);
   };
 
-  // Manejar envío del pago (crear evento en backend)
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleMetodoPagoChange = (metodo) => {
+    setFormData(prevState => ({
+      ...prevState,
+      metodoPago: metodo
+    }));
+  };
+
+  const handlePlanPagoChange = (e) => {
+    const plan = e.target.value;
+    setFormData(prevState => ({
+      ...prevState,
+      planPago: plan
+    }));
+  };
+
+  // ✅ 2. Manejar envío del formulario (CORREGIR id_usuario)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validaciones
+    if (!formData.planPago) {
+      alert('Por favor, selecciona un plan de pago.');
+      return;
+    }
+
+    if (!formData.metodoPago) {
+      alert('Por favor, selecciona un método de pago.');
+      return;
+    }
+
     if (!formData.terminos) {
-      alert('Debe aceptar los términos y condiciones para continuar.');
+      alert('Debes aceptar los términos y condiciones.');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Obtener usuario autenticado desde localStorage
-      const userStr = localStorage.getItem('user');
-      if (!userStr) {
-        alert('Debes iniciar sesión para crear una reserva');
+      // ✅ 2. OBTENER id_usuario CORRECTAMENTE
+      let userId = reservaData.id_usuario;
+
+      // Si no está en reservaData, buscar en localStorage
+      if (!userId || isNaN(userId)) {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            userId = user.id_usuario;
+            console.log('🔍 userId desde localStorage:', userId);
+          } catch (parseError) {
+            console.error('❌ Error al parsear user de localStorage:', parseError);
+          }
+        }
+      }
+
+      // Validar que userId sea un número válido
+      if (!userId || isNaN(userId)) {
+        console.error('❌ userId inválido:', userId);
+        alert('⚠️ No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.');
         navigate('/login');
         return;
       }
 
-      const user = JSON.parse(userStr);
+      console.log('✅ userId válido:', userId, typeof userId);
 
-      // Construir payload para backend
+      // ✅ Calcular valores finales
+      const subtotal = valores.hacienda + valores.decoracion + valores.servicios;
+      const impuestos = subtotal * 0.19;
+      const totalBase = subtotal + impuestos;
+
+      let descuento = 0;
+      let totalConDescuento = totalBase;
+
+      if (formData.planPago === 'completo') {
+        descuento = totalBase * 0.10; // 10% descuento
+        totalConDescuento = totalBase - descuento;
+      } else if (formData.planPago === 'inicial') {
+        descuento = totalBase * 0.05; // 5% descuento
+        totalConDescuento = totalBase - descuento;
+      }
+
+      // Mapear servicios
+      const servicios = (reservaData.servicios || []).map(servicio => ({
+        id_servicio: servicio.id_servicio,
+        cantidad: servicio.cantidad || 1,
+        precio_unitario: servicio.precio_unitario,
+        subtotal: servicio.subtotal || servicio.precio_unitario
+      }));
+
+      // ✅ Construir objeto del evento
       const eventoData = {
-        id_usuario: user.id_usuario,
+        id_usuario: parseInt(userId),
         id_salon: reservaData.id_salon,
         id_decoracion: reservaData.id_decoracion,
         fecha_evento: reservaData.fecha_evento,
         hora_inicio: reservaData.hora_inicio,
         hora_fin: reservaData.hora_fin,
-        numero_invitados: reservaData.numero_invitados,
+        numero_invitados: parseInt(reservaData.numero_invitados),
         tipo_evento: reservaData.tipo_evento,
-        tematica: reservaData.tematica,
-        descripcion: reservaData.observaciones,
+        tematica: reservaData.tematica || '',
+        descripcion: reservaData.descripcion || reservaData.observaciones || '',
+        precio_hacienda: valores.hacienda,
+        precio_decoracion: valores.decoracion,
+        precio_servicios: valores.servicios,
+        descuento: descuento,
+        precio_total: totalConDescuento,
         metodo_pago: formData.metodoPago,
-        servicios: reservaData.servicios // [{ id_servicio, cantidad }]
+        servicios: servicios,
+        plan_pago: formData.planPago,
+        monto_pagado: totalPagar
       };
 
-      console.log('📤 Enviando evento al backend:', eventoData);
+      console.log('📤 ========== ENVIANDO AL BACKEND ==========');
+      console.log('📊 Desglose de precios:');
+      console.log('  💰 Hacienda:', valores.hacienda);
+      console.log('  🎨 Decoración:', valores.decoracion);
+      console.log('  ⚙️ Servicios:', valores.servicios);
+      console.log('  📊 Subtotal:', subtotal);
+      console.log('  💵 Impuestos (19%):', impuestos);
+      console.log('  💰 Total base:', totalBase);
+      console.log('  🎁 Descuento (' + porcentajeDescuento + '%):', descuento);
+      console.log('  💳 Total con descuento:', totalConDescuento);
+      console.log('  📅 Plan de pago:', formData.planPago);
+      console.log('  💸 Monto a pagar ahora:', totalPagar);
+      console.log('📦 Evento completo:', eventoData);
+      console.log('🔍 ==========================================');
 
-      // Enviar a backend
-      const response = await fetch('http://localhost:3000/api/eventos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(eventoData)
-      });
+      // ✅ CORREGIR: Usar .create en lugar de .createEvento
+      const response = await eventosAPI.create(eventoData);
 
-      const data = await response.json();
+      if (response.data.success) {
+        console.log('✅ Evento creado exitosamente:', response.data);
 
-      if (data.success) {
-        alert(`✅ ${data.message}\n\nID del Evento: ${data.data.id_evento}\nTotal: $${data.data.precio_total.toLocaleString('es-CO')}`);
+        let mensaje = `✅ ¡Reserva realizada con éxito!\n\n`;
+        mensaje += `ID del Evento: ${response.data.data.id_evento}\n`;
+        mensaje += `Plan: ${formData.planPago === 'completo' ? 'Pago Completo (10% desc.)' : 'Pago Inicial (5% desc.)'}\n`;
+        mensaje += `Monto pagado ahora: ${formatCurrency(totalPagar)}\n`;
 
-        // Limpiar contexto
+        if (formData.planPago === 'inicial') {
+          mensaje += `Restante a pagar: ${formatCurrency(totalConDescuento - totalPagar)}`;
+        }
+
+        alert(mensaje);
+
         resetReserva();
-
-        // Redirigir a página de éxito o perfil
         navigate('/haciendas');
       } else {
-        alert(`❌ Error: ${data.message}`);
+        throw new Error(response.data.message || 'Error al crear el evento');
       }
     } catch (error) {
-      console.error('❌ Error al crear evento:', error);
-      alert('Error de conexión con el servidor');
+      console.error('❌ Error creando evento:', error);
+      console.error('📦 Detalles del error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      alert(error.response?.data?.message || 'Error al procesar la reserva. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Obtener número de tarjeta formateado para vista previa
   const getCardNumberPreview = () => {
     if (!formData.numeroTarjeta) return '•••• •••• •••• 4242';
     return formData.numeroTarjeta;
   };
 
-  // Obtener nombre del titular para vista previa
   const getCardNamePreview = () => {
     if (!formData.nombreTitular) return 'NOMBRE TITULAR';
     return formData.nombreTitular.toUpperCase();
   };
 
-  // Obtener fecha de expiración para vista previa
   const getCardExpiryPreview = () => {
     if (!formData.fechaExpiracion) return 'MM/AA';
     return formData.fechaExpiracion;
@@ -220,7 +347,7 @@ const MetodoPago = () => {
         <form className="form-section" onSubmit={handleSubmit}>
           <h2>Método de Pago <span>- Mis Reservas</span></h2>
 
-          {/* Resumen del pedido */}
+          {/* ✅ Resumen mejorado con descuentos dinámicos */}
           <div className="resumen-pago">
             <h3><i className="fas fa-receipt"></i> Resumen de tu pedido</h3>
             <div className="resumen-item">
@@ -236,13 +363,54 @@ const MetodoPago = () => {
               <span>{formatCurrency(valores.servicios)}</span>
             </div>
             <div className="resumen-item">
-              <span>Impuestos:</span>
+              <span>Subtotal:</span>
+              <span>{formatCurrency(valores.hacienda + valores.decoracion + valores.servicios)}</span>
+            </div>
+            <div className="resumen-item">
+              <span>Impuestos (19%):</span>
               <span>{formatCurrency(valores.impuestos)}</span>
             </div>
+
+            {/* ✅ Mostrar descuento según plan */}
+            {formData.planPago && descuentoAplicado > 0 && (
+              <div className="resumen-item" style={{ color: '#28a745', fontWeight: 'bold' }}>
+                <span>🎁 Descuento ({porcentajeDescuento}%):</span>
+                <span>- {formatCurrency(descuentoAplicado)}</span>
+              </div>
+            )}
+
             <div className="resumen-item resumen-total">
-              <span>TOTAL:</span>
-              <span>{formatCurrency(calcularTotal())}</span>
+              <span>TOTAL CON DESCUENTO:</span>
+              <span>{formatCurrency(calcularTotalCompleto())}</span>
             </div>
+
+            {/* ✅ Mostrar pago inicial si aplica */}
+            {formData.planPago === 'inicial' && (
+              <div className="alert alert-info mt-3" style={{
+                background: '#e3f2fd',
+                border: '1px solid #2196f3',
+                borderRadius: '8px',
+                padding: '1rem'
+              }}>
+                <i className="fas fa-info-circle me-2"></i>
+                <strong>📌 Pago Inicial (50%):</strong> {formatCurrency(totalPagar)}
+                <br />
+                <small><strong>Restante a pagar después:</strong> {formatCurrency(calcularTotalCompleto() - totalPagar)}</small>
+              </div>
+            )}
+
+            {/* ✅ Mostrar mensaje de descuento para pago completo */}
+            {formData.planPago === 'completo' && (
+              <div className="alert alert-success mt-3" style={{
+                background: '#d4edda',
+                border: '1px solid #28a745',
+                borderRadius: '8px',
+                padding: '1rem'
+              }}>
+                <i className="fas fa-check-circle me-2"></i>
+                <strong>🎉 ¡Ahorras {formatCurrency(descuentoAplicado)} pagando completo!</strong>
+              </div>
+            )}
           </div>
 
           {/* Plan de pago */}
@@ -258,21 +426,27 @@ const MetodoPago = () => {
               required
             >
               <option value="" disabled>Selecciona una opción</option>
-              <option value="completo">Pago completo (5% descuento)</option>
-              <option value="inicial">Pago inicial (50%)</option>
+              <option value="completo">💰 Pago completo (10% descuento)</option>
+              <option value="inicial">📅 Pago inicial 50% (5% descuento)</option>
             </select>
           </div>
 
           {/* Total a pagar */}
           <div className="field">
             <label htmlFor="totalPagar">
-              <i className="fas fa-money-bill-wave"></i> TOTAL A PAGAR
+              <i className="fas fa-money-bill-wave"></i> TOTAL A PAGAR AHORA
             </label>
             <input
               type="text"
               id="totalPagar"
               value={formatCurrency(totalPagar)}
               readOnly
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: formData.planPago === 'completo' ? '#28a745' : '#2196f3',
+                background: formData.planPago ? '#f0f8ff' : '#fff'
+              }}
             />
           </div>
 
@@ -500,7 +674,7 @@ const MetodoPago = () => {
             </label>
           </div>
 
-          <button type="submit" className="btn-pagar" disabled={loading}>
+          <button type="submit" className="btn-pagar" disabled={loading || !formData.planPago}>
             {loading ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2"></span>
@@ -508,7 +682,7 @@ const MetodoPago = () => {
               </>
             ) : (
               <>
-                <i className="fas fa-lock"></i> Confirmar Pago
+                <i className="fas fa-lock"></i> Confirmar Pago de {formatCurrency(totalPagar)}
               </>
             )}
           </button>

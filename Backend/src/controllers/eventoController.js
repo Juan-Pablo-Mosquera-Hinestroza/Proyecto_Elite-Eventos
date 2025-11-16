@@ -291,8 +291,17 @@ const createEvento = async (req, res) => {
             tematica,
             descripcion,
             metodo_pago,
+            descuento, // ✅ AGREGAR ESTE CAMPO
+            precio_total, // ✅ AGREGAR (viene desde frontend con descuento aplicado)
             servicios // Array: [{ id_servicio: 1, cantidad: 150 }, ...]
         } = req.body;
+
+        // ✅ LOG DE DEBUG
+        console.log('📥 ========== DATOS RECIBIDOS DEL FRONTEND ==========');
+        console.log('🎁 Descuento recibido:', descuento, typeof descuento);
+        console.log('💰 Precio total recibido:', precio_total, typeof precio_total);
+        console.log('📦 Body completo:', req.body);
+        console.log('========================================');
 
         // ================================
         // 1. VALIDAR CAMPOS OBLIGATORIOS
@@ -415,7 +424,23 @@ const createEvento = async (req, res) => {
             }
         }
 
-        const precio_total = precio_hacienda + precio_decoracion + precio_servicios;
+        // ✅ USAR PRECIO TOTAL DESDE FRONTEND (ya incluye descuento)
+        // Si no viene desde frontend, calcular aquí
+        let precio_total_final = precio_total;
+        if (!precio_total_final) {
+            precio_total_final = precio_hacienda + precio_decoracion + precio_servicios;
+        }
+
+        // ✅ CONVERTIR DESCUENTO A NÚMERO
+        const descuento_aplicado = descuento ? parseFloat(descuento) : 0;
+
+        console.log('💰 ========== PRECIOS CALCULADOS ==========');
+        console.log('🏛️ Precio hacienda:', precio_hacienda);
+        console.log('🎨 Precio decoración:', precio_decoracion);
+        console.log('⚙️ Precio servicios:', precio_servicios);
+        console.log('🎁 Descuento:', descuento_aplicado);
+        console.log('💳 Precio total final:', precio_total_final);
+        console.log('=========================================');
 
         // ================================
         // 5. CREAR EL EVENTO
@@ -434,10 +459,13 @@ const createEvento = async (req, res) => {
             precio_hacienda,
             precio_decoracion,
             precio_servicios,
-            precio_total,
+            descuento: descuento_aplicado, // ✅ GUARDAR DESCUENTO
+            precio_total: precio_total_final, // ✅ GUARDAR TOTAL CON DESCUENTO
             metodo_pago,
             estado: 'Pendiente'
         });
+
+        console.log('✅ Evento creado en DB:', nuevoEvento.toJSON());
 
         // ================================
         // 6. AGREGAR SERVICIOS AL EVENTO
