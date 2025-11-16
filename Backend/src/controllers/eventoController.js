@@ -2,6 +2,7 @@ const { Evento, Hacienda, Usuario, Decoracion, Servicio, EventoServicio } = requ
 const { successResponse, errorResponse, notFoundResponse } = require('../utils/responseHandler');
 const { HTTP_STATUS } = require('../config/constants');
 const { Op } = require('sequelize');
+const pool = require('../config/database'); // ← AGREGAR ESTA LÍNEA
 
 // ================================
 // GET - Obtener todos los eventos
@@ -159,36 +160,118 @@ const checkDisponibilidad = async (req, res) => {
         if (!id_salon || !fecha_evento || !hora_inicio) {
             return errorResponse(
                 res,
-                'Faltan parámetros: id_salon, fecha_evento, hora_inicio',
+                'Faltan parámetros: id_salon, fecha_evento, hora_inicio son obligatorios',
                 HTTP_STATUS.BAD_REQUEST
             );
         }
 
-        const eventosEnFecha = await Evento.findAll({
+        const horaFinEvento = hora_fin || '23:59:59';
+
+        // Buscar eventos que se solapen con el horario solicitado
+        const eventosConflicto = await Evento.findAll({
             where: {
                 id_salon,
                 fecha_evento,
                 estado: {
                     [Op.notIn]: ['Cancelado']
-                }
+                },
+                [Op.or]: [
+                    // Caso 1: Evento existente comienza antes y termina después del inicio solicitado
+                    {
+                        hora_inicio: { [Op.lte]: hora_inicio },
+                        hora_fin: { [Op.gt]: hora_inicio }
+                    },
+                    // Caso 2: Evento existente comienza antes del fin solicitado y termina después
+                    {
+                        hora_inicio: { [Op.lt]: horaFinEvento },
+                        hora_fin: { [Op.gte]: horaFinEvento }
+                    },
+                    // Caso 3: Evento existente está completamente dentro del rango solicitado
+                    {
+                        hora_inicio: { [Op.gte]: hora_inicio },
+                        hora_fin: { [Op.lte]: horaFinEvento }
+                    }
+                ]
             },
-            attributes: ['id_evento', 'hora_inicio', 'hora_fin', 'estado', 'tipo_evento'],
+            attributes: ['id_evento', 'hora_inicio', 'hora_fin', 'estado', 'tipo_evento', 'numero_invitados'],
             order: [['hora_inicio', 'ASC']]
         });
 
-        const disponible = eventosEnFecha.length === 0;
+        const disponible = eventosConflicto.length === 0;
+
+        // Calcular rangos horarios disponibles si hay conflictos
+        let horariosDisponibles = [];
+        if (!disponible) {
+            // Lógica para encontrar huecos entre eventos (opcional)
+            horariosDisponibles = calcularHorariosDisponibles(eventosConflicto, fecha_evento);
+        }
 
         return successResponse(res, {
             disponible,
             fecha: fecha_evento,
-            hacienda_id: id_salon,
-            eventos_existentes: eventosEnFecha
-        }, disponible ? '✅ Hacienda disponible' : '⚠️ Hacienda ocupada en esta fecha');
+            horario_solicitado: {
+                inicio: hora_inicio,
+                fin: horaFinEvento
+            },
+            hacienda_id: parseInt(id_salon),
+            eventos_conflicto: eventosConflicto.map(e => ({
+                id: e.id_evento,
+                horario: `${e.hora_inicio} - ${e.hora_fin}`,
+                tipo: e.tipo_evento,
+                invitados: e.numero_invitados
+            })),
+            horarios_alternativos: horariosDisponibles
+        }, disponible
+            ? '✅ Hacienda disponible para el horario solicitado'
+            : `⚠️ Hacienda ocupada. ${eventosConflicto.length} evento(s) en conflicto`
+        );
 
     } catch (error) {
         console.error('❌ Error al verificar disponibilidad:', error);
         return errorResponse(res, 'Error al verificar disponibilidad', HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     }
+};
+
+// Función auxiliar para calcular horarios disponibles
+const calcularHorariosDisponibles = (eventosOcupados, fecha) => {
+    // Ordenar eventos por hora de inicio
+    const ordenados = eventosOcupados.sort((a, b) =>
+        a.hora_inicio.localeCompare(b.hora_inicio)
+    );
+
+    const disponibles = [];
+    let horaActual = '06:00:00'; // Inicio del día laborable
+
+    for (const evento of ordenados) {
+        // Si hay espacio antes del evento
+        if (horaActual < evento.hora_inicio) {
+            disponibles.push({
+                inicio: horaActual,
+                fin: evento.hora_inicio,
+                duracion_horas: calcularDiferenciaHoras(horaActual, evento.hora_inicio)
+            });
+        }
+
+        // Actualizar hora actual al fin del evento
+        horaActual = evento.hora_fin > horaActual ? evento.hora_fin : horaActual;
+    }
+
+    // Espacio después del último evento
+    if (horaActual < '23:00:00') {
+        disponibles.push({
+            inicio: horaActual,
+            fin: '23:59:59',
+            duracion_horas: calcularDiferenciaHoras(horaActual, '23:59:59')
+        });
+    }
+
+    return disponibles;
+};
+
+const calcularDiferenciaHoras = (horaInicio, horaFin) => {
+    const [h1, m1] = horaInicio.split(':').map(Number);
+    const [h2, m2] = horaFin.split(':').map(Number);
+    return ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
 };
 
 // ================================
@@ -480,11 +563,77 @@ const cancelEvento = async (req, res) => {
     }
 };
 
+/**
+ * Obtener fechas ocupadas de una hacienda
+ */
+const getFechasOcupadas = async (req, res) => {
+    try {
+        const { id_salon, mes, anio } = req.query;
+
+        if (!id_salon) {
+            return res.status(400).json({
+                success: false,
+                message: 'El parámetro id_salon es obligatorio'
+            });
+        }
+
+        // Construir condiciones WHERE
+        let whereCondition = `id_salon = ${parseInt(id_salon)} AND estado != 'Cancelado'`;
+
+        if (mes && anio) {
+            const primerDia = `${anio}-${String(mes).padStart(2, '0')}-01`;
+            const ultimoDiaNum = new Date(anio, mes, 0).getDate();
+            const ultimaFecha = `${anio}-${String(mes).padStart(2, '0')}-${ultimoDiaNum}`;
+            whereCondition += ` AND fecha_evento BETWEEN '${primerDia}' AND '${ultimaFecha}'`;
+        } else {
+            whereCondition += ` AND fecha_evento >= CURDATE()`;
+        }
+
+        const [eventos] = await pool.query(
+            `SELECT fecha_evento, hora_inicio, hora_fin, tipo_evento 
+       FROM Evento 
+       WHERE ${whereCondition}
+       ORDER BY fecha_evento ASC`
+        );
+
+        // Extraer solo las fechas (formato YYYY-MM-DD)
+        const fechasOcupadas = eventos.map(e => {
+            const fecha = new Date(e.fecha_evento);
+            return fecha.toISOString().split('T')[0];
+        });
+
+        // Eliminar duplicados
+        const fechasUnicas = [...new Set(fechasOcupadas)];
+
+        console.log(`📅 Fechas ocupadas para hacienda ${id_salon}:`, fechasUnicas);
+
+        res.json({
+            success: true,
+            message: 'Fechas ocupadas obtenidas correctamente',
+            data: {
+                id_salon: parseInt(id_salon),
+                periodo: mes && anio ? `${mes}/${anio}` : 'Todos',
+                fechas_ocupadas: fechasUnicas,
+                total: fechasUnicas.length
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error obteniendo fechas ocupadas:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener fechas ocupadas',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getAllEventos,
     getEventoById,
     getEventosByUsuario,
     checkDisponibilidad,
+    getFechasOcupadas,  // ← EXPORTAR
     createEvento,
     updateEvento,
     cancelEvento

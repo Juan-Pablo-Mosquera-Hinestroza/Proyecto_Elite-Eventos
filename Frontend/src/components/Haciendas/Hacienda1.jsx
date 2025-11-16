@@ -50,48 +50,36 @@ const HaciendaDetail = () => {
   // useEffect: Actualizar SOLO datos desde MySQL
   // ================================
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchHacienda = async () => {
+    const fetchHaciendaData = async () => {
       try {
         console.log('📡 Solicitando datos de Hacienda ID: 1...');
-
         const response = await fetch('http://localhost:3000/api/haciendas/1');
         const data = await response.json();
 
-        if (data.success && isMounted) {
-          console.log('📦 Datos recibidos de MySQL:', {
-            nombre: data.data.nombre,
-            precio: data.data.precio_base,
-            capacidad: data.data.capacidad,
-            ubicacion: data.data.direccion
-          });
+        console.log('📦 Datos recibidos de MySQL:', data);
 
-          const haciendaActualizada = {
-            ...hacienda,
-            nombre: data.data.nombre,
-            precio: `$${Number(data.data.precio_base).toLocaleString('es-CO')}`,
-            capacidad: `${data.data.capacidad} personas`,
-            ubicacion: data.data.direccion,
-            descripcion: data.data.descripcion || hacienda.descripcion,
+        if (data.success) {
+          const haciendaDB = data.data;
+
+          // ✅ Guardar precio en el estado
+          setHacienda(prevData => ({
+            ...prevData,
+            precio: `$${Number(haciendaDB.precio_base).toLocaleString('es-CO')}`,
+            nombre: haciendaDB.nombre || prevData.nombre,
+            descripcion: haciendaDB.descripcion || prevData.descripcion,
+            capacidad: `${haciendaDB.capacidad_max} personas`,
+            ubicacion: haciendaDB.direccion,
             imagenes: imagenesLocales // ← MANTENER IMÁGENES LOCALES
-          };
-
-          setHacienda(haciendaActualizada);
+          }));
 
           console.log('✅ Hacienda 1 sincronizada (datos MySQL + imágenes locales)');
         }
       } catch (error) {
-        console.error('❌ Error al cargar hacienda desde API:', error.message);
-        console.log('⚠️ Usando datos por defecto (hardcoded)');
+        console.error('❌ Error obteniendo datos de la hacienda:', error);
       }
     };
 
-    fetchHacienda();
-
-    return () => {
-      isMounted = false;
-    };
+    fetchHaciendaData();
   }, []);
 
   const haciendasSimilares = [
@@ -130,17 +118,21 @@ const HaciendaDetail = () => {
 
   // ✅ NUEVA FUNCIÓN para manejar la reserva
   const handleReservar = () => {
-    // Guardar datos de la hacienda en el contexto
-    updateReserva({
-      id_salon: hacienda.id,
-      haciendaNombre: hacienda.nombre,
-      precio_hacienda: parseFloat(hacienda.precio.replace(/[$,]/g, '')),
-      capacidad_maxima: parseInt(hacienda.capacidad.split('-')[1] || hacienda.capacidad.split(' ')[0]),
-      direccion_hacienda: hacienda.ubicacion
-    });
+    // Convertir el precio de string "$20.000.000" a número 20000000
+    const precioNumerico = parseFloat(hacienda.precio.replace(/[$.,]/g, ''));
 
     console.log('📍 Hacienda seleccionada:', hacienda.nombre);
     console.log('🆔 ID Salón:', hacienda.id);
+    console.log('💰 Precio Base:', precioNumerico); // ✅ LOG CORREGIDO
+
+    // ✅ Guardar ID, nombre Y PRECIO en contexto
+    updateReserva({
+      id_salon: hacienda.id,
+      haciendaNombre: hacienda.nombre,
+      precio_hacienda: precioNumerico || 0, // ✅ USAR precioNumerico
+      capacidad_maxima: parseInt(hacienda.capacidad.split('-')[1] || hacienda.capacidad.split(' ')[0]),
+      direccion_hacienda: hacienda.ubicacion
+    });
 
     // Navegar a opciones
     navigate('/opciones');

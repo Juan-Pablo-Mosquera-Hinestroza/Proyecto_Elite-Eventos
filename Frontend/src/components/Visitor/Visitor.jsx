@@ -38,9 +38,6 @@ const EliteEventos = () => {
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
             <div className="ms-auto d-flex gap-3">
-              <a href="./Haciendas" className="btn btn-outline-light rounded-pill px-3">
-                Haciendas
-              </a>
               <a href="/login" className="btn btn-outline-light rounded-pill px-3">
                 Iniciar sesión
               </a>
@@ -126,12 +123,12 @@ const EliteEventos = () => {
               <p className="mt-3">
                 <i className="fas fa-map-marker-alt me-2"></i>Cl. 25 #127-220, Barrio Pance, Cali, Valle del Cauca
               </p>
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco" 
-                width="100%" 
-                height="150" 
-                style={{border: 0}} 
-                allowFullScreen="" 
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3982.647284090291!2d-76.555589!3d3.424757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwMjUnMjkuMSJOIDc2wrAzMycyMC4xIlc!5e0!3m2!1ses!2sco!4v1620000000000!5m2!1ses!2sco"
+                width="100%"
+                height="150"
+                style={{ border: 0 }}
+                allowFullScreen=""
                 loading="lazy"
                 title="Ubicación Elite Eventos"
               ></iframe>
@@ -139,7 +136,7 @@ const EliteEventos = () => {
             <div className="col-lg-4 mb-4">
               <h6>Contacto</h6>
               <p className="mt-3">
-                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br/>
+                <i className="fas fa-envelope me-2"></i>saamuel009@gmail.com<br />
                 <i className="fas fa-phone me-2"></i>(57) 312 691 5311
               </p>
             </div>

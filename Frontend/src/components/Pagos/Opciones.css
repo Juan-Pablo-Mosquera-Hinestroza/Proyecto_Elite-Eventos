@@ -1,4 +1,3 @@
-
 /* CSS para Página de Opciones */
 :root {
   --primary-color: #8e6c88;
@@ -15,7 +14,12 @@
 
 
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Playfair Display', serif;
   font-weight: 700;
 }
@@ -292,11 +296,37 @@ h1, h2, h3, h4, h5, h6 {
   cursor: not-allowed;
 }
 
-.day.occupied {
-  background: #ff006f; /* Red for occupied days */
-  color: white;
-  font-weight: 600;
+.day.ocupado {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  border: 2px solid #dc3545 !important;
+  cursor: not-allowed !important;
+  position: relative;
+  opacity: 0.7;
+}
+
+.day.ocupado::before {
+  content: '✕';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.day.ocupado:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Día pasado (gris) */
+.day.past {
+  background-color: #e9ecef;
+  color: #6c757d;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .calendar-footer {
@@ -329,7 +359,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Formularios */
-.info-form, .event-form {
+.info-form,
+.event-form {
   max-width: 800px;
   margin: 0 auto;
 }
@@ -769,7 +800,7 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(135deg, var(--primary-color), #7a5b75);
   color: white;
   padding: 40px 0;
- 
+
 
 }
 
@@ -800,7 +831,8 @@ h1, h2, h3, h4, h5, h6 {
   color: white;
 }
 
-.footer1 h5, .footer1 h6 {
+.footer1 h5,
+.footer1 h6 {
   color: white;
   display: flex;
   align-items: center;
@@ -846,24 +878,24 @@ h1, h2, h3, h4, h5, h6 {
   body {
     padding-top: 140px;
   }
-  
+
   .progress-container {
     top: 70px;
   }
-  
+
   .decoration-card {
     grid-template-columns: 1fr;
   }
-  
+
   .decoration-image {
     height: 200px;
   }
-  
+
   .service-card {
     grid-template-columns: 1fr;
     text-align: center;
   }
-  
+
   .service-features1 {
     justify-content: center;
   }
@@ -873,43 +905,43 @@ h1, h2, h3, h4, h5, h6 {
   body {
     padding-top: 130px;
   }
-  
+
   .progress-steps {
     padding: 0 20px;
   }
-  
+
   .step-label {
     font-size: 0.75rem;
   }
-  
+
   .planning-section {
     padding: 25px;
     margin: 15px;
   }
-  
+
   .section-title {
     font-size: 1.8rem;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 0;
   }
-  
+
   .haciendas-options {
     grid-template-columns: 1fr;
   }
-  
+
   .section-footer {
     flex-direction: column;
     gap: 15px;
   }
-  
+
   .btn {
     width: 100%;
     justify-content: center;
   }
-  
+
   .message-box {
     flex-direction: column;
     text-align: center;
@@ -921,27 +953,26 @@ h1, h2, h3, h4, h5, h6 {
   .progress-steps {
     padding: 0 10px;
   }
-  
+
   .step-number {
     width: 35px;
     height: 35px;
     font-size: 0.9rem;
   }
-  
+
   .progress-bar {
     left: 40px;
     right: 40px;
     top: 17px;
   }
-  
+
   .calendar-container {
     padding: 20px;
   }
-  
+
   .day {
     padding: 10px 2px;
     min-height: 50px;
     font-size: 0.9rem;
   }
 }
-

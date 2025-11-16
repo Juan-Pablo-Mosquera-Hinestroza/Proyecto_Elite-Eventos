@@ -121,7 +121,7 @@ const Registro = () => {
         mostrarMensaje('¡Registro exitoso! Redirigiendo...', 'success');
 
         setTimeout(() => {
-          window.location.href = '/haciendas';
+          window.location.href = '/Haciendas';
         }, 2000);
       } else {
         console.error('❌ Error del servidor:', data.message);

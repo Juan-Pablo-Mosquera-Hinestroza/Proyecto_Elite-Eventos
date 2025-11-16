@@ -1,24 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useReserva } from '../../contexts/ReservaContext'; // ← IMPORTAR
+import { useReserva } from '../../contexts/ReservaContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Opciones.css';
+import eventosAPI from '../../api/eventosAPI';
 
 const Opciones = () => {
   const navigate = useNavigate();
-  const { reservaData, updateReserva } = useReserva(); // ← USAR CONTEXTO
+  const { reservaData, updateReserva } = useReserva();
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedDate, setSelectedDate] = useState(reservaData.fecha_evento);
-  const [selectedHacienda, setSelectedHacienda] = useState(reservaData.id_salon);
-  const [selectedDecoration, setSelectedDecoration] = useState(null);
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // ✅ Obtener datos del usuario desde localStorage
+  const getUserData = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        return JSON.parse(userStr);
+      }
+    } catch (error) {
+      console.error('❌ Error parseando datos de usuario:', error);
+    }
+    return null;
+  };
+
+  const userData = getUserData();
+
+  // ✅ Separar nombre y apellidos del campo "nombre" completo
+  const separarNombreCompleto = (nombreCompleto) => {
+    if (!nombreCompleto) return { nombre: '', apellidos: '' };
+
+    const partes = nombreCompleto.trim().split(' ');
+    const nombre = partes[0] || '';
+    const apellidos = partes.slice(1).join(' ') || '';
+
+    return { nombre, apellidos };
+  };
+
+  const { nombre: nombreUsuario, apellidos: apellidosUsuario } = userData
+    ? separarNombreCompleto(userData.nombre)
+    : { nombre: '', apellidos: '' };
+
+  // ✅ Estado del formulario con valores iniciales del usuario logueado
   const [formData, setFormData] = useState({
-    nombre: reservaData.nombre || '',
-    apellidos: reservaData.apellidos || '',
-    telefono: reservaData.telefono || '',
-    email: reservaData.email || '',
+    nombre: reservaData.nombre || nombreUsuario,
+    apellidos: reservaData.apellidos || apellidosUsuario,
+    telefono: reservaData.telefono || userData?.telefono || '',
+    email: reservaData.email || userData?.email || '',
     empresa: reservaData.empresa || '',
     contacto: '',
     hora: reservaData.hora_inicio || '',
@@ -26,6 +52,17 @@ const Opciones = () => {
     tipo: reservaData.tipo_evento || '',
     tematica: reservaData.tematica || ''
   });
+
+  // ✅ Mostrar indicador visual de que los datos están autocompletados
+  const [datosAutocompletados, setDatosAutocompletados] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedDate, setSelectedDate] = useState(reservaData.fecha_evento);
+  const [selectedHacienda, setSelectedHacienda] = useState(reservaData.id_salon);
+  const [selectedDecoration, setSelectedDecoration] = useState(null);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [fechasOcupadas, setFechasOcupadas] = useState([]);
+  const [loadingFechas, setLoadingFechas] = useState(false);
 
   // Datos de las haciendas
   const haciendas = [
@@ -59,7 +96,142 @@ const Opciones = () => {
     }
   ];
 
+  // ==========================================
+  // FUNCIONES
+  // ==========================================
 
+  // ✅ Cargar fechas ocupadas desde el backend
+  const cargarFechasOcupadas = async () => {
+    if (!selectedHacienda) return;
+
+    setLoadingFechas(true);
+    try {
+      const mes = currentMonth.getMonth() + 1;
+      const anio = currentMonth.getFullYear();
+
+      console.log(`📅 Consultando disponibilidad para Hacienda ${selectedHacienda} - ${mes}/${anio}`);
+
+      const response = await eventosAPI.getFechasOcupadas(selectedHacienda, mes, anio);
+
+      if (response.data.success) {
+        const fechas = response.data.data.fechas_ocupadas || [];
+        setFechasOcupadas(fechas);
+        console.log('🔴 Fechas ocupadas:', fechas);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando fechas ocupadas:', error);
+      setFechasOcupadas([]);
+    } finally {
+      setLoadingFechas(false);
+    }
+  };
+
+  // ✅ Verificar si una fecha está ocupada
+  const esFechaOcupada = (fecha) => {
+    const fechaStr = fecha.toISOString().split('T')[0];
+    return fechasOcupadas.includes(fechaStr);
+  };
+
+  // ✅ Calcular hora fin
+  const calcularHoraFin = (horaInicio, duracionHoras) => {
+    const [horas, minutos] = horaInicio.split(':').map(Number);
+    const horaFinDate = new Date(0, 0, 0, horas + parseInt(duracionHoras), minutos);
+    return `${String(horaFinDate.getHours()).padStart(2, '0')}:${String(horaFinDate.getMinutes()).padStart(2, '0')}:00`;
+  };
+
+  // ✅ Validar disponibilidad con horario específico
+  const validarDisponibilidadConHorario = async () => {
+    if (!selectedDate || !formData.hora || !formData.duracion) return true;
+
+    try {
+      const horaFin = calcularHoraFin(formData.hora, formData.duracion);
+
+      const response = await eventosAPI.verificarDisponibilidad({
+        id_salon: selectedHacienda,
+        fecha_evento: selectedDate.toISOString().split('T')[0],
+        hora_inicio: `${formData.hora}:00`,
+        hora_fin: horaFin
+      });
+
+      if (!response.data.data.disponible) {
+        const eventos = response.data.data.eventos_conflicto || [];
+        alert(`⚠️ Horario no disponible\n\nEventos en conflicto:\n${eventos.map(e => `• ${e.horario} - ${e.tipo}`).join('\n')
+          }`);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error verificando disponibilidad:', error);
+      alert('Error al verificar disponibilidad. Por favor intenta nuevamente.');
+      return false;
+    }
+  };
+
+  // ✅ Generar calendario OCULTANDO días ocupados
+  const generateCalendar = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDay = firstDay.getDay();
+    const calendarDays = [];
+
+    // Días del mes anterior
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = startingDay - 1; i >= 0; i--) {
+      calendarDays.push({
+        day: prevMonthLastDay - i,
+        isCurrentMonth: false,
+        isDisabled: true,
+        isHidden: false
+      });
+    }
+
+    // Días del mes actual
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const isToday = date.toDateString() === today.toDateString();
+      const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+      const isPast = date < today;
+      const isOcupado = esFechaOcupada(date);
+
+      // Ocultar días ocupados
+      if (isOcupado) {
+        continue;
+      }
+
+      calendarDays.push({
+        day,
+        isCurrentMonth: true,
+        isToday,
+        isSelected,
+        isDisabled: isPast,
+        isPast,
+        isOcupado: false,
+        isHidden: false,
+        date
+      });
+    }
+
+    // Días del próximo mes
+    const totalCells = 42;
+    const remainingDays = totalCells - calendarDays.length;
+    for (let day = 1; day <= remainingDays; day++) {
+      calendarDays.push({
+        day,
+        isCurrentMonth: false,
+        isDisabled: true,
+        isHidden: false
+      });
+    }
+
+    return calendarDays;
+  };
 
   // Manejar cambios en formularios
   const handleInputChange = (e) => {
@@ -79,84 +251,6 @@ const Opciones = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  // Manejar selección de fecha
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-  };
-
-  // Manejar selección de hacienda
-  const handleHaciendaSelect = (haciendaId) => {
-    setSelectedHacienda(haciendaId);
-  };
-
-  // Manejar selección de decoración
-  const handleDecorationSelect = (decoracionId) => {
-    setSelectedDecoration(decoracionId);
-  };
-
-  // Manejar selección de servicios
-  const handleServiceToggle = (serviceId) => {
-    setSelectedServices(prev => {
-      if (prev.includes(serviceId)) {
-        return prev.filter(id => id !== serviceId);
-      } else {
-        return [...prev, serviceId];
-      }
-    });
-  };
-
-  // Generar calendario
-  const generateCalendar = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-
-    const startingDay = firstDay.getDay();
-
-    const calendarDays = [];
-
-    // Días del mes anterior
-    const prevMonthLastDay = new Date(year, month, 0).getDate();
-    for (let i = startingDay - 1; i >= 0; i--) {
-      calendarDays.push({
-        day: prevMonthLastDay - i,
-        isCurrentMonth: false,
-        isDisabled: true
-      });
-    }
-
-    // Días del mes actual
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const isToday = date.toDateString() === new Date().toDateString();
-      const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
-
-      calendarDays.push({
-        day,
-        isCurrentMonth: true,
-        isToday,
-        isSelected,
-        date
-      });
-    }
-
-    // Días del próximo mes
-    const totalCells = 42; // 6 semanas
-    const remainingDays = totalCells - calendarDays.length;
-    for (let day = 1; day <= remainingDays; day++) {
-      calendarDays.push({
-        day,
-        isCurrentMonth: false,
-        isDisabled: true
-      });
-    }
-
-    return calendarDays;
-  };
-
   // Navegación del calendario
   const prevMonth = () => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -166,33 +260,29 @@ const Opciones = () => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
-  // Formatear precio
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(price);
+  // Manejar selección de hacienda
+  const handleHaciendaSelect = (haciendaId) => {
+    setSelectedHacienda(haciendaId);
   };
 
-  // Manejar navegación al siguiente paso (Decoraciones)
+  // Finalizar y guardar en contexto
   const handleFinalizar = async () => {
-    // Validar que todo esté completo
+    // Validar disponibilidad con horario específico
+    const disponible = await validarDisponibilidadConHorario();
+
+    if (!disponible) {
+      return;
+    }
+
+    // Validar campos obligatorios
     if (!selectedDate || !selectedHacienda || !formData.hora || !formData.tipo) {
       alert('Por favor completa todos los campos obligatorios');
       return;
     }
 
-    // Calcular hora_fin según duración
-    const calcularHoraFin = (horaInicio, duracionHoras) => {
-      const [horas, minutos] = horaInicio.split(':').map(Number);
-      const horaFinDate = new Date(0, 0, 0, horas + parseInt(duracionHoras), minutos);
-      return `${String(horaFinDate.getHours()).padStart(2, '0')}:${String(horaFinDate.getMinutes()).padStart(2, '0')}:00`;
-    };
-
     const haciendaSeleccionada = haciendas.find(h => h.id === selectedHacienda);
 
-    // Guardar en contexto
+    // ✅ NO sobrescribir precio_hacienda si ya existe
     updateReserva({
       fecha_evento: selectedDate.toISOString().split('T')[0],
       hora_inicio: `${formData.hora}:00`,
@@ -206,17 +296,45 @@ const Opciones = () => {
       empresa: formData.empresa,
       tipo_evento: formData.tipo,
       tematica: formData.tematica,
-      duracion: formData.duracion,
-      precio_hacienda: 0 // Se calculará después
+      duracion: formData.duracion
+      // ❌ NO INCLUIR: precio_hacienda: 0
     });
 
-    // Navegar a decoraciones
+    console.log('✅ Datos guardados en contexto, navegando a decoraciones...');
     navigate('/decoraciones');
   };
 
+  // ==========================================
+  // EFFECTS
+  // ==========================================
+
+  // Cargar fechas ocupadas cuando cambie la hacienda o el mes
+  useEffect(() => {
+    if (selectedHacienda) {
+      cargarFechasOcupadas();
+    }
+  }, [selectedHacienda, currentMonth]);
+
+  // ✅ useEffect para marcar campos autocompletados
+  useEffect(() => {
+    if (userData) {
+      setDatosAutocompletados(true);
+      console.log('✅ Datos del usuario autocompletados:', {
+        nombre: nombreUsuario,
+        apellidos: apellidosUsuario,
+        telefono: userData.telefono,
+        email: userData.email
+      });
+    }
+  }, []);
+
+  // ==========================================
+  // RENDER
+  // ==========================================
+
   return (
     <div className="opciones-container">
-      {/* Navbar Elegante */}
+      {/* Navbar */}
       <nav className="navbar navbar-expand-lg fixed-top">
         <div className="container">
           <a className="navbar-brand" href="/visitor">
@@ -229,7 +347,7 @@ const Opciones = () => {
         </div>
       </nav>
 
-      {/* Progreso del formulario */}
+      {/* Progreso */}
       <div className="progress-container">
         <div className="progress-steps">
           {[1, 2, 3].map(step => (
@@ -255,6 +373,29 @@ const Opciones = () => {
               <p className="section-subtitle">Selecciona el día perfecto para tu ocasión especial</p>
             </div>
 
+            {reservaData.haciendaNombre && (
+              <div className="alert alert-info mb-3">
+                <i className="fas fa-home me-2"></i>
+                <strong>Hacienda:</strong> {reservaData.haciendaNombre}
+              </div>
+            )}
+
+            {!selectedHacienda && (
+              <div className="alert alert-warning mb-3">
+                <i className="fas fa-exclamation-triangle me-2"></i>
+                Por favor selecciona una hacienda primero
+              </div>
+            )}
+
+            {loadingFechas && (
+              <div className="text-center my-3">
+                <div className="spinner-border spinner-border-sm text-primary" role="status">
+                  <span className="visually-hidden">Cargando disponibilidad...</span>
+                </div>
+                <p className="text-muted mt-2">Consultando fechas disponibles...</p>
+              </div>
+            )}
+
             <div className="calendar-container">
               <div className="calendar-header">
                 <button className="nav-button" onClick={prevMonth}>
@@ -279,35 +420,41 @@ const Opciones = () => {
                   {generateCalendar().map((dayInfo, index) => (
                     <div
                       key={index}
-                      className={`day ${!dayInfo.isCurrentMonth ? 'disabled' : ''
-                        } ${dayInfo.isToday ? 'today' : ''} ${dayInfo.isSelected ? 'selected' : ''
-                        }`}
-                      onClick={() => dayInfo.isCurrentMonth && handleDateSelect(dayInfo.date)}
+                      className={`day 
+                      ${!dayInfo.isCurrentMonth ? 'disabled' : ''} 
+                      ${dayInfo.isToday ? 'today' : ''} 
+                      ${dayInfo.isSelected ? 'selected' : ''}
+                      ${dayInfo.isPast ? 'past' : ''}
+                    `}
+                      onClick={() => {
+                        if (dayInfo.isCurrentMonth && !dayInfo.isDisabled) {
+                          setSelectedDate(dayInfo.date);
+                          console.log('📅 Fecha seleccionada:', dayInfo.date.toISOString().split('T')[0]);
+                        }
+                      }}
+                      style={{
+                        cursor: dayInfo.isDisabled ? 'not-allowed' : 'pointer',
+                        visibility: dayInfo.isHidden ? 'hidden' : 'visible'
+                      }}
                     >
                       {dayInfo.day}
                     </div>
                   ))}
                 </div>
+
+
               </div>
 
-              <div className="calendar-footer">
-                <div className="availability-info">
-                  <div className="availability-dot available"></div>
-                  <span>Disponible</span>
-                  <div className="availability-dot selected"></div>
-                  <span>Seleccionado</span>
-                </div>
+              <div className="section-footer">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={nextStep}
+                  disabled={!selectedDate || !selectedHacienda}
+                >
+                  Siguiente <i className="fas fa-arrow-right ms-2"></i>
+                </button>
               </div>
-            </div>
-
-            <div className="section-footer">
-              <button
-                className="btn btn-primary btn-next"
-                onClick={nextStep}
-                disabled={!selectedDate}
-              >
-                Siguiente <i className="fas fa-arrow-right ms-2"></i>
-              </button>
             </div>
           </section>
         )}
@@ -317,13 +464,37 @@ const Opciones = () => {
           <section className="planning-section info-section">
             <div className="section-header">
               <h2 className="section-title">Información del Cliente</h2>
-              <p className="section-subtitle">Por favor completa tus datos para continuar</p>
+              <p className="section-subtitle">
+                {datosAutocompletados
+                  ? 'Hemos completado tus datos automáticamente. Puedes editarlos si lo deseas.'
+                  : 'Por favor completa tus datos para continuar'
+                }
+              </p>
             </div>
+
+            {/* ✅ Alerta informativa si hay datos autocompletados */}
+            {datosAutocompletados && (
+              <div className="alert alert-success alert-dismissible fade show" role="alert">
+                <i className="fas fa-check-circle me-2"></i>
+                <strong>Datos cargados automáticamente</strong> desde tu perfil.
+                Puedes modificarlos si lo necesitas.
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setDatosAutocompletados(false)}
+                ></button>
+              </div>
+            )}
 
             <form className="info-form">
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="nombre">Nombre</label>
+                  <label htmlFor="nombre">
+                    Nombre
+                    {datosAutocompletados && (
+                      <i className="fas fa-user-check text-success ms-2" title="Autocompletado"></i>
+                    )}
+                  </label>
                   <input
                     type="text"
                     id="nombre"
@@ -331,11 +502,21 @@ const Opciones = () => {
                     value={formData.nombre}
                     onChange={handleInputChange}
                     placeholder="Ingresa tu nombre"
+                    className={datosAutocompletados ? 'form-control is-valid' : 'form-control'}
                     required
                   />
+                  <div className="valid-feedback">
+                    <i className="fas fa-check me-1"></i>Dato autocompletado
+                  </div>
                 </div>
+
                 <div className="form-group">
-                  <label htmlFor="apellidos">Apellidos</label>
+                  <label htmlFor="apellidos">
+                    Apellidos
+                    {datosAutocompletados && (
+                      <i className="fas fa-user-check text-success ms-2" title="Autocompletado"></i>
+                    )}
+                  </label>
                   <input
                     type="text"
                     id="apellidos"
@@ -343,14 +524,23 @@ const Opciones = () => {
                     value={formData.apellidos}
                     onChange={handleInputChange}
                     placeholder="Ingresa tus apellidos"
+                    className={datosAutocompletados ? 'form-control is-valid' : 'form-control'}
                     required
                   />
+                  <div className="valid-feedback">
+                    <i className="fas fa-check me-1"></i>Dato autocompletado
+                  </div>
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="telefono">Teléfono</label>
+                  <label htmlFor="telefono">
+                    Teléfono
+                    {datosAutocompletados && formData.telefono && (
+                      <i className="fas fa-phone-alt text-success ms-2" title="Autocompletado"></i>
+                    )}
+                  </label>
                   <input
                     type="tel"
                     id="telefono"
@@ -358,11 +548,23 @@ const Opciones = () => {
                     value={formData.telefono}
                     onChange={handleInputChange}
                     placeholder="Número de contacto"
+                    className={datosAutocompletados && formData.telefono ? 'form-control is-valid' : 'form-control'}
                     required
                   />
+                  {datosAutocompletados && formData.telefono && (
+                    <div className="valid-feedback">
+                      <i className="fas fa-check me-1"></i>Dato autocompletado
+                    </div>
+                  )}
                 </div>
+
                 <div className="form-group">
-                  <label htmlFor="email">Correo electrónico</label>
+                  <label htmlFor="email">
+                    Correo electrónico
+                    {datosAutocompletados && (
+                      <i className="fas fa-envelope-open-text text-success ms-2" title="Autocompletado"></i>
+                    )}
+                  </label>
                   <input
                     type="email"
                     id="email"
@@ -370,8 +572,12 @@ const Opciones = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="tu@email.com"
+                    className={datosAutocompletados ? 'form-control is-valid' : 'form-control'}
                     required
                   />
+                  <div className="valid-feedback">
+                    <i className="fas fa-check me-1"></i>Dato autocompletado
+                  </div>
                 </div>
               </div>
 
@@ -418,7 +624,7 @@ const Opciones = () => {
           </section>
         )}
 
-        {/* Paso 3: Personaliza tu Evento */}
+        {/* Paso 3: Detalles del Evento */}
         {currentStep === 3 && (
           <section className="planning-section event-section">
             <div className="section-header">

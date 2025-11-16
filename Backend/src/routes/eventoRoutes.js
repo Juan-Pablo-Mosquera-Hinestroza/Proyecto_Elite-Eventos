@@ -3,36 +3,27 @@ const router = express.Router();
 const {
     getAllEventos,
     getEventoById,
-    getEventosByUsuario,
-    checkDisponibilidad,
     createEvento,
     updateEvento,
-    cancelEvento
+    cancelEvento,
+    getEventosByUsuario,
+    checkDisponibilidad,   // ← Mantener
+    getFechasOcupadas      // ← Agregar
 } = require('../controllers/eventoController');
+const { authenticate } = require('../middlewares/auth');
 
-// ================================
-// Rutas de Eventos
-// ================================
+// ✅ Obtener fechas ocupadas de una hacienda (para calendario)
+router.get('/fechas-ocupadas', getFechasOcupadas);
 
-// GET /api/eventos/disponibilidad - Verificar disponibilidad (debe ir antes de /:id)
+// ✅ Verificar disponibilidad específica (con horarios)
 router.get('/disponibilidad', checkDisponibilidad);
 
-// GET /api/eventos/usuario/:id_usuario - Eventos de un usuario (PERFIL)
+// Rutas existentes
 router.get('/usuario/:id_usuario', getEventosByUsuario);
-
-// GET /api/eventos - Obtener todos los eventos
 router.get('/', getAllEventos);
-
-// GET /api/eventos/:id - Obtener un evento por ID
 router.get('/:id', getEventoById);
-
-// POST /api/eventos - Crear nuevo evento
 router.post('/', createEvento);
-
-// PUT /api/eventos/:id - Actualizar evento
 router.put('/:id', updateEvento);
-
-// DELETE /api/eventos/:id/cancelar - Cancelar evento
 router.delete('/:id/cancelar', cancelEvento);
 
 module.exports = router;
