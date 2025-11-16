@@ -89,7 +89,7 @@ const Hacienda2Detail = () => {
     updateReserva({
       id_salon: hacienda.id,
       haciendaNombre: hacienda.nombre,
-      precio_hacienda: parseFloat(hacienda.precio.replace(/[$,]/g, '')),
+      precio_hacienda: parseFloat(hacienda.precio.replace(/[$.,]/g, '')),
       capacidad_maxima: parseInt(hacienda.capacidad.split('-')[1] || hacienda.capacidad.split(' ')[0]),
       direccion_hacienda: hacienda.ubicacion
     });

@@ -32,6 +32,17 @@ const MetodoPago = () => {
     impuestos: 0
   });
 
+  // ✅ AGREGAR useEffect para debugging
+  useEffect(() => {
+    console.log('🔍 ========== DEBUG METODO.JSX ==========');
+    console.log('📦 reservaData completo:', reservaData);
+    console.log('💰 precio_hacienda:', reservaData.precio_hacienda, typeof reservaData.precio_hacienda);
+    console.log('🎨 precio_decoracion:', reservaData.precio_decoracion, typeof reservaData.precio_decoracion);
+    console.log('⚙️ precio_servicios:', reservaData.precio_servicios, typeof reservaData.precio_servicios);
+    console.log('📊 Valores cargados:', valores);
+    console.log('🔍 ======================================');
+  }, [reservaData]);
+
   const [totalPagar, setTotalPagar] = useState(0);
   const [loading, setLoading] = useState(false);
 

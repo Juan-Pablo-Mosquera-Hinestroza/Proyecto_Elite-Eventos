@@ -89,7 +89,7 @@ const Hacienda3Detail = () => {
     updateReserva({
       id_salon: polideportivo.id,
       haciendaNombre: polideportivo.nombre,
-      precio_hacienda: parseFloat(polideportivo.precio.replace(/[$,]/g, '')),
+      precio_hacienda: parseFloat(polideportivo.precio.replace(/[$.,]/g, '')),
       capacidad_maxima: parseInt(polideportivo.capacidad.split('-')[1] || polideportivo.capacidad.split(' ')[0]),
       direccion_hacienda: polideportivo.ubicacion
     });
