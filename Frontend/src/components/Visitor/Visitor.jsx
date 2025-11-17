@@ -58,7 +58,7 @@ const EliteEventos = () => {
           </p>
           <div className="mt-4">
             <a href="/sobrenosotros" className="btn btn-primary btn-lg rounded-pill px-4 me-2">Leer más</a>
-            <a href="/Haciendas" className="btn btn-outline-light btn-lg rounded-pill px-4">Crea un evento</a>
+            <a href="/Login" className="btn btn-outline-light btn-lg rounded-pill px-4">Crea un evento</a>
           </div>
         </div>
         <div className="scroll-down">

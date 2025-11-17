@@ -25,7 +25,7 @@ const SaberMas = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    
+
     const scrollIndicator = document.querySelector('.scroll-indicator');
     if (scrollIndicator) {
       scrollIndicator.addEventListener('click', handleScrollClick);
@@ -48,8 +48,7 @@ const SaberMas = () => {
             <i className="fas fa-crown me-2"></i>Elite Eventos
           </a>
           <div className="navbar-actions">
-            <a href="/haciendas" className="nav-link">Haciendas</a>
-            <a href="/login" className="nav-link">Iniciar sesión</a>
+            <a href="/Login" className="nav-link">Iniciar sesión</a>
             <a href="/register" className="btn btn-primary">Registrarme</a>
           </div>
         </div>
@@ -77,9 +76,9 @@ const SaberMas = () => {
           <div className="row align-items-center">
             <div className="col-lg-6">
               <div className="about-image">
-                <img 
-                  src="https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" 
-                  alt="Equipo Elite Eventos" 
+                <img
+                  src="https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                  alt="Equipo Elite Eventos"
                   className="img-fluid"
                 />
                 <div className="image-caption">Nuestro equipo de expertos en eventos</div>
@@ -158,9 +157,9 @@ const SaberMas = () => {
           <div className="row g-0">
             <div className="col-md-4">
               <div className="gallery-item">
-                <img 
-                  src="https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" 
-                  alt="Boda de lujo" 
+                <img
+                  src="https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                  alt="Boda de lujo"
                 />
                 <div className="gallery-overlay">
                   <div className="overlay-content">
@@ -172,9 +171,9 @@ const SaberMas = () => {
             </div>
             <div className="col-md-4">
               <div className="gallery-item">
-                <img 
-                  src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" 
-                  alt="Evento corporativo" 
+                <img
+                  src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                  alt="Evento corporativo"
                 />
                 <div className="gallery-overlay">
                   <div className="overlay-content">
@@ -186,9 +185,9 @@ const SaberMas = () => {
             </div>
             <div className="col-md-4">
               <div className="gallery-item">
-                <img 
-                  src="https://images.unsplash.com/photo-1531058020387-3be344556be6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" 
-                  alt="Fiesta temática" 
+                <img
+                  src="https://images.unsplash.com/photo-1531058020387-3be344556be6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                  alt="Fiesta temática"
                 />
                 <div className="gallery-overlay">
                   <div className="overlay-content">
@@ -234,9 +233,9 @@ const SaberMas = () => {
             </div>
             <div className="col-lg-6">
               <div className="values-image">
-                <img 
-                  src="https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" 
-                  alt="Detalle de evento elegante" 
+                <img
+                  src="https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                  alt="Detalle de evento elegante"
                   className="img-fluid"
                 />
               </div>
